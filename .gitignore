@@ -29,3 +29,4 @@ Thumbs.db
 service_account.json
 credentials.json
 backend/service_account.json.json
+backend/.env.production

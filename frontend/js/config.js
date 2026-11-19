@@ -14,9 +14,10 @@ const CONFIG = {
       if (window.location.port !== "5000") {
         return "http://localhost:5000";
       }
+      return window.location.origin;
     }
-    // 3. Fallback to same origin
-    return window.location.origin;
+    // 3. In production on Vercel, point to the deployed backend
+    return "https://cakechallenge-backend.vercel.app";
   },
   set API_BASE_URL(val) {
     if (val) {
