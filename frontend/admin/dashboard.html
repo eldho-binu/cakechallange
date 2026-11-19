@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard — Christmas Cake Challenge</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/admin.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎂</text></svg>">
+</head>
+<body>
+
+  <div class="admin-layout">
+    
+    <!-- Mobile Sidebar Backdrop -->
+    <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleSidebar()"></div>
+
+    <!-- Admin Sidebar -->
+    <aside class="admin-sidebar" id="admin-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-logo-icon" style="width: 36px; height: 36px; font-size: 1.4rem;">🎂</div>
+        <div class="sidebar-brand">
+          <h2>Cake Challenge</h2>
+          <span>Admin Portal &bull; Pancode</span>
+        </div>
+      </div>
+
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-item active"><a href="dashboard.html"><span class="nav-icon">📊</span> Dashboard</a></li>
+        <li class="sidebar-nav-item"><a href="orders.html"><span class="nav-icon">📦</span> Master Orders</a></li>
+        <li class="sidebar-nav-item"><a href="customers.html"><span class="nav-icon">👥</span> Customers</a></li>
+        <li class="sidebar-nav-item"><a href="members.html"><span class="nav-icon">👤</span> Members</a></li>
+        <li class="sidebar-nav-item"><a href="requests.html"><span class="nav-icon">✨</span> Member Requests <span class="nav-badge" id="badge-requests">0</span></a></li>
+        <li class="sidebar-nav-item"><a href="locations.html"><span class="nav-icon">📍</span> Locations</a></li>
+        <li class="sidebar-nav-item"><a href="cake-settings.html"><span class="nav-icon">🍰</span> Cake Settings</a></li>
+        <li class="sidebar-nav-item"><a href="custom-fields.html"><span class="nav-icon">⚙️</span> Custom Fields</a></li>
+        <li class="sidebar-nav-item"><a href="payments.html"><span class="nav-icon">💳</span> Payment Tracking</a></li>
+        <li class="sidebar-nav-item"><a href="reports.html"><span class="nav-icon">📑</span> Reports & Excel</a></li>
+        <li class="sidebar-nav-item"><a href="activity-logs.html"><span class="nav-icon">📜</span> Activity Logs</a></li>
+        <li class="sidebar-nav-item"><a href="settings.html"><span class="nav-icon">🔧</span> System Settings</a></li>
+        <li class="sidebar-nav-item" style="margin-top: auto;"><a href="javascript:void(0)" onclick="Auth.logout()" style="color: #FFCDD2;"><span class="nav-icon">🚪</span> Logout</a></li>
+      </ul>
+
+      <div class="sidebar-footer">
+        Google Sheets DB v4<br>
+        Spreadsheet: 1HFZzU7...
+      </div>
+    </aside>
+
+    <!-- Admin Main Body -->
+    <div class="admin-main">
+      
+      <!-- Topbar -->
+      <header class="admin-topbar">
+        <div class="topbar-left">
+          <button class="sidebar-toggle-btn" onclick="toggleSidebar()">☰</button>
+          <h2 style="font-size: 1.25rem; margin: 0; color: var(--green-darkest);">Executive Dashboard</h2>
+        </div>
+        <div class="topbar-right">
+          <span id="system-status-pill" class="system-pill pill-warning">
+            <span class="status-indicator warning"></span> Storage Status
+          </span>
+          <div style="font-size: 0.9rem; font-weight: 600; color: var(--green-darkest);">
+            🛡️ Master Administrator
+          </div>
+        </div>
+      </header>
+
+      <!-- Dashboard Content -->
+      <main class="admin-content">
+
+        <!-- Top 6 Primary KPIs -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-icon">📦</div>
+            <div>
+              <div class="kpi-label">Total Orders</div>
+              <div class="kpi-value" id="kpi-admin-orders">0</div>
+            </div>
+          </div>
+
+          <div class="kpi-card kpi-gold">
+            <div class="kpi-icon">🎂</div>
+            <div>
+              <div class="kpi-label">Total Cakes Sold</div>
+              <div class="kpi-value" id="kpi-admin-cakes">0</div>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-icon">💰</div>
+            <div>
+              <div class="kpi-label">Gross Sales</div>
+              <div class="kpi-value" id="kpi-admin-sales">₹0.00</div>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-icon" style="background: #E8F5E9; color: #2E7D32;">💵</div>
+            <div>
+              <div class="kpi-label">Amount Collected</div>
+              <div class="kpi-value" id="kpi-admin-collected" style="color: #2E7D32;">₹0.00</div>
+            </div>
+          </div>
+
+          <div class="kpi-card kpi-red">
+            <div class="kpi-icon">⏳</div>
+            <div>
+              <div class="kpi-label">Pending Amount</div>
+              <div class="kpi-value" id="kpi-admin-pending" style="color: var(--red-primary);">₹0.00</div>
+            </div>
+          </div>
+
+          <div class="kpi-card kpi-orange">
+            <div class="kpi-icon">👤</div>
+            <div>
+              <div class="kpi-label">Active Members</div>
+              <div class="kpi-value" id="kpi-admin-members">0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Secondary Operational Badges -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+          <div class="card" style="margin-bottom: 0; padding: 1rem; text-align: center;">
+            <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">FULLY PAID</div>
+            <div style="font-size: 1.5rem; font-weight: 700; color: var(--status-paid);" id="badge-paid-orders">0</div>
+          </div>
+
+          <div class="card" style="margin-bottom: 0; padding: 1rem; text-align: center;">
+            <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">PARTIALLY PAID</div>
+            <div style="font-size: 1.5rem; font-weight: 700; color: var(--status-partial);" id="badge-partial-orders">0</div>
+          </div>
+
+          <div class="card" style="margin-bottom: 0; padding: 1rem; text-align: center;">
+            <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">UNPAID ORDERS</div>
+            <div style="font-size: 1.5rem; font-weight: 700; color: var(--status-unpaid);" id="badge-unpaid-orders">0</div>
+          </div>
+
+          <div class="card" style="margin-bottom: 0; padding: 1rem; text-align: center;">
+            <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">AWAITING VERIFICATION</div>
+            <div style="font-size: 1.5rem; font-weight: 700; color: var(--status-pending);" id="badge-ver-orders">0</div>
+          </div>
+
+          <div class="card" style="margin-bottom: 0; padding: 1rem; text-align: center;">
+            <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">PENDING REQUESTS</div>
+            <div style="font-size: 1.5rem; font-weight: 700; color: var(--red-primary);" id="badge-pending-reqs">0</div>
+          </div>
+        </div>
+
+        <!-- Real-Time Analytics & Distribution Charts -->
+        <div class="charts-grid">
+          
+          <!-- Cake Variety Distribution -->
+          <div class="chart-card">
+            <h3>🎂 Cake Variety Sales (Units)</h3>
+            <div class="simple-bar-list" id="cake-chart-container">
+              <p style="color: var(--text-muted); font-size: 0.9rem;">Loading cake distribution...</p>
+            </div>
+          </div>
+
+          <!-- Location Wise Sales -->
+          <div class="chart-card">
+            <h3>📍 Location-Wise Revenue (₹)</h3>
+            <div class="simple-bar-list" id="location-chart-container">
+              <p style="color: var(--text-muted); font-size: 0.9rem;">Loading location breakdown...</p>
+            </div>
+          </div>
+
+          <!-- Top Member Sales -->
+          <div class="chart-card">
+            <h3>🌟 Member Performance (Sales)</h3>
+            <div class="simple-bar-list" id="member-chart-container">
+              <p style="color: var(--text-muted); font-size: 0.9rem;">Loading member leaderboard...</p>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Recent Orders Table -->
+        <div class="card">
+          <div class="card-header">
+            <h2>Recent Orders</h2>
+            <div style="display: flex; gap: 0.5rem;">
+              <a href="orders.html" class="btn btn-outline btn-sm">Master Order Search</a>
+              <a href="reports.html" class="btn btn-primary btn-sm">📥 Master Excel Workbook</a>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Customer</th>
+                  <th>Member</th>
+                  <th>Date</th>
+                  <th>Total</th>
+                  <th>Paid</th>
+                  <th>Remaining</th>
+                  <th>Payment</th>
+                  <th>Verification</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="admin-recent-orders-tbody">
+                <tr>
+                  <td colspan="10" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                    Loading recent orders...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+
+    </div>
+  </div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/ui.js"></script>
+
+  <script>
+    function toggleSidebar() {
+      document.getElementById("admin-sidebar").classList.toggle("open");
+      document.getElementById("sidebar-backdrop").classList.toggle("active");
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      if (!Auth.requireRole("admin")) return;
+      UI.checkSystemHealth();
+      loadAdminDashboard();
+    });
+
+    async function loadAdminDashboard() {
+      try {
+        const res = await API.get("/api/reports/admin-summary");
+        if (res.success && res.data) {
+          const d = res.data;
+
+          // KPIs
+          document.getElementById("kpi-admin-orders").textContent = d.total_orders;
+          document.getElementById("kpi-admin-cakes").textContent = d.total_cakes_sold;
+          document.getElementById("kpi-admin-sales").textContent = UI.formatINR(d.total_sales);
+          document.getElementById("kpi-admin-collected").textContent = UI.formatINR(d.total_collected);
+          document.getElementById("kpi-admin-pending").textContent = UI.formatINR(d.total_pending);
+          document.getElementById("kpi-admin-members").textContent = `${d.active_members} / ${d.total_members}`;
+
+          // Badges
+          document.getElementById("badge-paid-orders").textContent = d.fully_paid_orders;
+          document.getElementById("badge-partial-orders").textContent = d.partially_paid_orders;
+          document.getElementById("badge-unpaid-orders").textContent = d.unpaid_orders;
+          document.getElementById("badge-ver-orders").textContent = d.awaiting_verification;
+          document.getElementById("badge-pending-reqs").textContent = d.pending_requests;
+          document.getElementById("badge-requests").textContent = d.pending_requests;
+
+          // Render Cake Distribution
+          renderBarChart(
+            "cake-chart-container",
+            d.cake_distribution || {},
+            val => `${val} units`,
+            "gold"
+          );
+
+          // Render Location Sales
+          renderBarChart(
+            "location-chart-container",
+            d.location_sales || {},
+            val => UI.formatINR(val),
+            "green"
+          );
+
+          // Render Member Performance
+          renderBarChart(
+            "member-chart-container",
+            d.member_sales || {},
+            val => UI.formatINR(val),
+            "red"
+          );
+
+          // Render Recent Orders
+          renderRecentOrders(d.recent_orders || []);
+        }
+      } catch (e) {
+        console.error("Failed to load admin summary:", e);
+      }
+    }
+
+    function renderBarChart(containerId, dataMap, labelFormatter, colorClass = "green") {
+      const container = document.getElementById(containerId);
+      const entries = Object.entries(dataMap);
+      if (entries.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-muted); font-size: 0.85rem;">No data recorded yet.</p>';
+        return;
+      }
+
+      const maxVal = Math.max(...entries.map(e => parseFloat(e[1]) || 0), 1);
+
+      container.innerHTML = entries.map(([name, val]) => {
+        const num = parseFloat(val) || 0;
+        const pct = Math.min(100, Math.round((num / maxVal) * 100));
+        return `
+          <div class="bar-row">
+            <div class="bar-info">
+              <span>${name}</span>
+              <span><strong>${labelFormatter(num)}</strong></span>
+            </div>
+            <div class="bar-track">
+              <div class="bar-fill ${colorClass}" style="width: ${pct}%;"></div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderRecentOrders(orders) {
+      const tbody = document.getElementById("admin-recent-orders-tbody");
+      if (orders.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 2rem;">No orders recorded yet.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = orders.map(o => `
+        <tr>
+          <td><strong><a href="orders.html?search=${encodeURIComponent(o['Order ID'])}">${o['Order ID']}</a></strong></td>
+          <td>${o.customer_name || 'Customer'}</td>
+          <td>${o.member_name || 'Member'}</td>
+          <td>${UI.formatDate(o['Order Date'])}</td>
+          <td><strong>${UI.formatINR(o['Total Amount'])}</strong></td>
+          <td style="color: var(--status-paid); font-weight: 600;">${UI.formatINR(o['Total Amount Paid'])}</td>
+          <td style="color: var(--red-primary); font-weight: 600;">${UI.formatINR(o['Remaining Amount'])}</td>
+          <td>${UI.getPaymentBadge(o['Payment Status'])}</td>
+          <td>${UI.getVerificationBadge(o['Verification Status'])}</td>
+          <td>
+            <a href="orders.html?search=${encodeURIComponent(o['Order ID'])}" class="btn btn-outline btn-sm">
+              Manage
+            </a>
+          </td>
+        </tr>
+      `).join("");
+    }
+  </script>
+</body>
+</html>

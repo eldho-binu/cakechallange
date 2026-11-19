@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Locations Management — Admin</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/admin.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎂</text></svg>">
+</head>
+<body>
+
+  <div class="admin-layout">
+    <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleSidebar()"></div>
+
+    <!-- Admin Sidebar -->
+    <aside class="admin-sidebar" id="admin-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-logo-icon" style="width: 36px; height: 36px; font-size: 1.4rem;">🎂</div>
+        <div class="sidebar-brand">
+          <h2>Cake Challenge</h2>
+          <span>Admin Portal &bull; Pancode</span>
+        </div>
+      </div>
+
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-item"><a href="dashboard.html"><span class="nav-icon">📊</span> Dashboard</a></li>
+        <li class="sidebar-nav-item"><a href="orders.html"><span class="nav-icon">📦</span> Master Orders</a></li>
+        <li class="sidebar-nav-item"><a href="customers.html"><span class="nav-icon">👥</span> Customers</a></li>
+        <li class="sidebar-nav-item"><a href="members.html"><span class="nav-icon">👤</span> Members</a></li>
+        <li class="sidebar-nav-item"><a href="requests.html"><span class="nav-icon">✨</span> Member Requests</a></li>
+        <li class="sidebar-nav-item active"><a href="locations.html"><span class="nav-icon">📍</span> Locations</a></li>
+        <li class="sidebar-nav-item"><a href="cake-settings.html"><span class="nav-icon">🍰</span> Cake Settings</a></li>
+        <li class="sidebar-nav-item"><a href="custom-fields.html"><span class="nav-icon">⚙️</span> Custom Fields</a></li>
+        <li class="sidebar-nav-item"><a href="payments.html"><span class="nav-icon">💳</span> Payment Tracking</a></li>
+        <li class="sidebar-nav-item"><a href="reports.html"><span class="nav-icon">📑</span> Reports & Excel</a></li>
+        <li class="sidebar-nav-item"><a href="activity-logs.html"><span class="nav-icon">📜</span> Activity Logs</a></li>
+        <li class="sidebar-nav-item"><a href="settings.html"><span class="nav-icon">🔧</span> System Settings</a></li>
+        <li class="sidebar-nav-item" style="margin-top: auto;"><a href="javascript:void(0)" onclick="Auth.logout()" style="color: #FFCDD2;"><span class="nav-icon">🚪</span> Logout</a></li>
+      </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="admin-main">
+      <header class="admin-topbar">
+        <div class="topbar-left">
+          <button class="sidebar-toggle-btn" onclick="toggleSidebar()">☰</button>
+          <h2 style="font-size: 1.25rem; margin: 0; color: var(--green-darkest);">Parish Wards & Locations</h2>
+        </div>
+        <div class="topbar-right">
+          <button class="btn btn-primary btn-sm" onclick="openAddLocationModal()">
+            ➕ Add New Location
+          </button>
+        </div>
+      </header>
+
+      <main class="admin-content">
+
+        <!-- Locations Table -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2>All Configured Locations</h2>
+              <span style="font-size: 0.85rem; color: var(--text-muted);">Standardized regions for order dropdowns</span>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Location ID</th>
+                  <th>Location / Ward Name</th>
+                  <th>Description</th>
+                  <th>Total Orders</th>
+                  <th>Sales Revenue</th>
+                  <th>Amount Collected</th>
+                  <th>Pending Balance</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="locations-tbody">
+                <tr>
+                  <td colspan="9" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                    Loading locations...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Add / Edit Location Modal -->
+  <div id="location-modal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 460px;">
+      <div class="modal-header">
+        <h3 id="modal-loc-title">Add Location</h3>
+        <button class="modal-close" onclick="closeLocationModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="edit-loc-id">
+
+        <div class="form-group">
+          <label class="form-label">Location / Ward Name <span class="required">*</span></label>
+          <input type="text" id="modal-loc-name" class="form-control" placeholder="e.g. North Ward" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <input type="text" id="modal-loc-desc" class="form-control" placeholder="e.g. Residential community north of church">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeLocationModal()">Cancel</button>
+        <button class="btn btn-primary" id="btn-save-loc" onclick="saveLocation()">Save Location</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/ui.js"></script>
+
+  <script>
+    function toggleSidebar() {
+      document.getElementById("admin-sidebar").classList.toggle("open");
+      document.getElementById("sidebar-backdrop").classList.toggle("active");
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      if (!Auth.requireRole("admin")) return;
+      UI.checkSystemHealth();
+      loadLocations();
+    });
+
+    async function loadLocations() {
+      const tbody = document.getElementById("locations-tbody");
+      try {
+        const res = await API.get("/api/admin/locations");
+        if (res.success && Array.isArray(res.data)) {
+          const locs = res.data;
+          if (locs.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 2rem;">No locations configured.</td></tr>`;
+            return;
+          }
+
+          tbody.innerHTML = locs.map(l => `
+            <tr>
+              <td><strong>${l['Location ID']}</strong></td>
+              <td><strong>${l['Location Name']}</strong></td>
+              <td>${l['Description'] || '-'}</td>
+              <td><span class="badge badge-paid">${l.orders_count || 0}</span></td>
+              <td><strong>${UI.formatINR(l.total_sales || 0)}</strong></td>
+              <td style="color: var(--status-paid); font-weight: 600;">${UI.formatINR(l.total_collected || 0)}</td>
+              <td style="color: var(--red-primary); font-weight: 600;">${UI.formatINR(l.pending_amount || 0)}</td>
+              <td>
+                <span class="badge ${l['Active Status'] === 'Active' ? 'badge-verified' : 'badge-rejected'}">
+                  ${l['Active Status'] || 'Active'}
+                </span>
+              </td>
+              <td>
+                <div class="action-btn-group">
+                  <button class="btn btn-outline btn-sm" onclick='openEditLocationModal(${JSON.stringify(l)})' title="Edit">
+                    ✏️ Edit
+                  </button>
+                  <button class="btn btn-secondary btn-sm" onclick="toggleLocationStatus('${l['Location ID']}')" title="Toggle Active">
+                    ${l['Active Status'] === 'Active' ? '🛑' : '✅'}
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `).join("");
+        }
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: red;">Failed to load locations.</td></tr>`;
+      }
+    }
+
+    function openAddLocationModal() {
+      document.getElementById("edit-loc-id").value = "";
+      document.getElementById("modal-loc-title").textContent = "Add New Location";
+      document.getElementById("modal-loc-name").value = "";
+      document.getElementById("modal-loc-desc").value = "";
+      document.getElementById("location-modal").classList.add("active");
+    }
+
+    function openEditLocationModal(l) {
+      document.getElementById("edit-loc-id").value = l["Location ID"];
+      document.getElementById("modal-loc-title").textContent = `Edit Location: ${l["Location Name"]}`;
+      document.getElementById("modal-loc-name").value = l["Location Name"] || "";
+      document.getElementById("modal-loc-desc").value = l["Description"] || "";
+      document.getElementById("location-modal").classList.add("active");
+    }
+
+    function closeLocationModal() {
+      document.getElementById("location-modal").classList.remove("active");
+    }
+
+    async function saveLocation() {
+      const lid = document.getElementById("edit-loc-id").value;
+      const name = document.getElementById("modal-loc-name").value.trim();
+      const desc = document.getElementById("modal-loc-desc").value.trim();
+
+      if (!name) {
+        UI.showToast("Location name is required.", "error");
+        return;
+      }
+
+      const btn = document.getElementById("btn-save-loc");
+      btn.disabled = true;
+
+      try {
+        if (!lid) {
+          const res = await API.post("/api/admin/locations", { name, description: desc });
+          if (res.success) {
+            UI.showToast("Location added successfully!", "success");
+            closeLocationModal();
+            loadLocations();
+          } else {
+            UI.showToast(res.error || "Failed to add location.", "error");
+          }
+        } else {
+          const res = await API.put(`/api/admin/locations/${lid}`, { name, description: desc });
+          if (res.success) {
+            UI.showToast("Location updated!", "success");
+            closeLocationModal();
+            loadLocations();
+          } else {
+            UI.showToast(res.error || "Failed to update.", "error");
+          }
+        }
+      } catch (e) {
+        UI.showToast("Connection error.", "error");
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function toggleLocationStatus(lid) {
+      try {
+        const res = await API.post(`/api/admin/locations/${lid}/toggle-status`, {});
+        if (res.success) {
+          UI.showToast(`Location status changed to ${res.new_status}.`, "info");
+          loadLocations();
+        }
+      } catch (e) {
+        UI.showToast("Error updating location status.", "error");
+      }
+    }
+  </script>
+</body>
+</html>

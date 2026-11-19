@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>System Settings & Diagnostics — Admin</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/admin.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎂</text></svg>">
+</head>
+<body>
+
+  <div class="admin-layout">
+    <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleSidebar()"></div>
+
+    <!-- Admin Sidebar -->
+    <aside class="admin-sidebar" id="admin-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-logo-icon" style="width: 36px; height: 36px; font-size: 1.4rem;">🎂</div>
+        <div class="sidebar-brand">
+          <h2>Cake Challenge</h2>
+          <span>Admin Portal &bull; Pancode</span>
+        </div>
+      </div>
+
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-item"><a href="dashboard.html"><span class="nav-icon">📊</span> Dashboard</a></li>
+        <li class="sidebar-nav-item"><a href="orders.html"><span class="nav-icon">📦</span> Master Orders</a></li>
+        <li class="sidebar-nav-item"><a href="customers.html"><span class="nav-icon">👥</span> Customers</a></li>
+        <li class="sidebar-nav-item"><a href="members.html"><span class="nav-icon">👤</span> Members</a></li>
+        <li class="sidebar-nav-item"><a href="requests.html"><span class="nav-icon">✨</span> Member Requests</a></li>
+        <li class="sidebar-nav-item"><a href="locations.html"><span class="nav-icon">📍</span> Locations</a></li>
+        <li class="sidebar-nav-item"><a href="cake-settings.html"><span class="nav-icon">🍰</span> Cake Settings</a></li>
+        <li class="sidebar-nav-item"><a href="custom-fields.html"><span class="nav-icon">⚙️</span> Custom Fields</a></li>
+        <li class="sidebar-nav-item"><a href="payments.html"><span class="nav-icon">💳</span> Payment Tracking</a></li>
+        <li class="sidebar-nav-item"><a href="reports.html"><span class="nav-icon">📑</span> Reports & Excel</a></li>
+        <li class="sidebar-nav-item"><a href="activity-logs.html"><span class="nav-icon">📜</span> Activity Logs</a></li>
+        <li class="sidebar-nav-item active"><a href="settings.html"><span class="nav-icon">🔧</span> System Settings</a></li>
+        <li class="sidebar-nav-item" style="margin-top: auto;"><a href="javascript:void(0)" onclick="Auth.logout()" style="color: #FFCDD2;"><span class="nav-icon">🚪</span> Logout</a></li>
+      </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="admin-main">
+      <header class="admin-topbar">
+        <div class="topbar-left">
+          <button class="sidebar-toggle-btn" onclick="toggleSidebar()">☰</button>
+          <h2 style="font-size: 1.25rem; margin: 0; color: var(--green-darkest);">System Settings & Diagnostics</h2>
+        </div>
+        <div class="topbar-right">
+          <span id="system-status-pill" class="system-pill pill-warning">
+            <span class="status-indicator warning"></span> Storage Status
+          </span>
+        </div>
+      </header>
+
+      <main class="admin-content">
+
+        <!-- Storage & Backend Diagnostics Card -->
+        <div class="card">
+          <div class="card-header">
+            <h2>Google Sheets Storage Diagnostics</h2>
+            <button class="btn btn-outline btn-sm" onclick="runDiagnostics()">🔄 Refresh Diagnostics</button>
+          </div>
+
+          <div style="font-size: 0.95rem; line-height: 1.8; margin-bottom: 1.25rem;">
+            <p><strong>Primary Database:</strong> Google Sheets API v4</p>
+            <p><strong>Target Spreadsheet ID:</strong> <code>1HFZzU7EB5cCbZI2BvMFML9JH8ySit7PUBew4Xkql6pI</code></p>
+            <p><strong>Current Active Mode:</strong> <span id="diag-mode" style="font-weight: 700; color: var(--green-primary);">Checking...</span></p>
+            <p><strong>Connection Details / Errors:</strong> <span id="diag-error" style="color: var(--text-muted);">-</span></p>
+          </div>
+
+          <div style="background: var(--green-surface-subtle); border-left: 4px solid var(--green-primary); padding: 1rem 1.25rem; border-radius: var(--radius-sm); font-size: 0.9rem;">
+            <h4 style="margin-bottom: 0.5rem; color: var(--green-darkest);">To Connect Real Google Cloud Service Account:</h4>
+            <ol style="padding-left: 1.25rem; margin: 0; line-height: 1.6;">
+              <li>Open Google Cloud Console and enable the <strong>Google Sheets API</strong> and <strong>Google Drive API</strong>.</li>
+              <li>Create a Service Account and download the JSON key.</li>
+              <li>Open the Google Spreadsheet: <a href="https://docs.google.com/spreadsheets/d/1HFZzU7EB5cCbZI2BvMFML9JH8ySit7PUBew4Xkql6pI/edit" target="_blank" style="word-break: break-all;">1HFZzU7EB5cCbZI2BvMFML9JH8ySit7PUBew4Xkql6pI</a>.</li>
+              <li>Click <strong>Share</strong> and add your service account email (e.g. <code>xxx@xxx.iam.gserviceaccount.com</code>) as <strong>Editor</strong>.</li>
+              <li>Set the backend environment variable <code>GOOGLE_SERVICE_ACCOUNT_JSON</code> to the contents of your service account JSON file.</li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- Change Master Admin Password -->
+        <div class="card">
+          <div class="card-header">
+            <h2>Change Administrator Password</h2>
+          </div>
+
+          <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+            Update your master admin password. Stored securely as PBKDF2 hash in the Google Sheets Settings tab.
+          </p>
+
+          <form id="form-admin-password" onsubmit="handleUpdatePassword(event)" style="max-width: 480px;">
+            <div class="form-group">
+              <label class="form-label" for="new-admin-password">New Password <span class="required">*</span></label>
+              <input type="password" id="new-admin-password" class="form-control" placeholder="Minimum 8 characters" required minlength="8">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="confirm-admin-password">Confirm New Password <span class="required">*</span></label>
+              <input type="password" id="confirm-admin-password" class="form-control" placeholder="Re-enter new password" required minlength="8">
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="btn-save-password">
+              Update Administrator Password
+            </button>
+          </form>
+        </div>
+
+        <!-- Frontend API URL Configurator (For Vercel Monorepo / Decoupled Deploys) -->
+        <div class="card">
+          <div class="card-header">
+            <h2>Backend API Base URL Configuration</h2>
+          </div>
+
+          <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">
+            If you have deployed the frontend and backend as two separate Vercel projects, specify your deployed backend URL here (e.g. <code>https://cake-backend.vercel.app</code>).
+          </p>
+
+          <div style="max-width: 520px;">
+            <div class="form-group">
+              <label class="form-label" for="config-api-url">Backend Base URL</label>
+              <input type="url" id="config-api-url" class="form-control" placeholder="e.g. https://your-backend.vercel.app">
+              <div class="form-hint">Leave blank to default to current origin (or http://localhost:5000 during local testing).</div>
+            </div>
+
+            <div style="display: flex; gap: 0.75rem;">
+              <button type="button" class="btn btn-forest btn-sm" onclick="saveCustomApiUrl()">
+                💾 Save API URL
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="resetApiUrl()">
+                Reset to Default
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/ui.js"></script>
+
+  <script>
+    function toggleSidebar() {
+      document.getElementById("admin-sidebar").classList.toggle("open");
+      document.getElementById("sidebar-backdrop").classList.toggle("active");
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      if (!Auth.requireRole("admin")) return;
+      UI.checkSystemHealth();
+      runDiagnostics();
+
+      // Populate current API URL from localStorage
+      const stored = localStorage.getItem("API_BASE_URL");
+      if (stored) {
+        document.getElementById("config-api-url").value = stored;
+      }
+    });
+
+    async function runDiagnostics() {
+      const modeEl = document.getElementById("diag-mode");
+      const errEl = document.getElementById("diag-error");
+
+      try {
+        const res = await API.get("/api/system/status");
+        if (res.success && res.status) {
+          modeEl.textContent = res.status.mode || 'Active';
+          modeEl.style.color = res.status.connected ? "var(--status-paid)" : "var(--status-partial)";
+          errEl.textContent = res.status.error || "Operational. Tabs and schemas verified.";
+        }
+      } catch (e) {
+        modeEl.textContent = "Offline / Connection Error";
+        modeEl.style.color = "var(--red-primary)";
+        errEl.textContent = "Cannot communicate with backend API.";
+      }
+    }
+
+    async function handleUpdatePassword(e) {
+      e.preventDefault();
+      const p1 = document.getElementById("new-admin-password").value;
+      const p2 = document.getElementById("confirm-admin-password").value;
+      const btn = document.getElementById("btn-save-password");
+
+      if (p1 !== p2) {
+        UI.showToast("Passwords do not match.", "error");
+        return;
+      }
+      if (p1.length < 8) {
+        UI.showToast("Password must be at least 8 characters long.", "error");
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "Updating...";
+
+      try {
+        const res = await API.put("/api/admin/settings/password", { new_password: p1 });
+        if (res.success) {
+          UI.showToast("Password updated successfully!", "success");
+          document.getElementById("form-admin-password").reset();
+        } else {
+          UI.showToast(res.error || "Failed to update password.", "error");
+        }
+      } catch (e) {
+        UI.showToast("Connection error.", "error");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Update Administrator Password";
+      }
+    }
+
+    function saveCustomApiUrl() {
+      const url = document.getElementById("config-api-url").value.trim();
+      CONFIG.API_BASE_URL = url;
+      UI.showToast("Backend API URL updated!", "success");
+      runDiagnostics();
+      UI.checkSystemHealth();
+    }
+
+    function resetApiUrl() {
+      CONFIG.API_BASE_URL = "";
+      document.getElementById("config-api-url").value = "";
+      UI.showToast("Reset to default API URL.", "info");
+      runDiagnostics();
+      UI.checkSystemHealth();
+    }
+  </script>
+</body>
+</html>

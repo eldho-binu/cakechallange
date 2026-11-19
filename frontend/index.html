@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Christmas Cake Challenge — Church Youth Group</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎂</text></svg>">
+</head>
+<body>
+
+  <!-- Site Header -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="index.html" class="brand-wrapper">
+        <div class="brand-logo-icon">🎂</div>
+        <div class="brand-titles">
+          <h1>Christmas Cake Challenge</h1>
+          <span>Church Youth Group Order System</span>
+        </div>
+      </a>
+      <nav class="main-nav" id="main-nav">
+        <a href="login.html" class="nav-link">🔑 Login</a>
+        <a href="login.html?tab=request" class="nav-link">✨ Request Access</a>
+        <a href="login.html?tab=admin" class="nav-link">🛡️ Admin Portal</a>
+      </nav>
+      <button class="mobile-nav-toggle" onclick="document.getElementById('main-nav').classList.toggle('active')">☰</button>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <main style="flex: 1; padding: 3rem 0;">
+    <div class="container">
+      
+      <div class="card" style="text-align: center; padding: 3.5rem 1.5rem; background: linear-gradient(180deg, #FFFFFF 0%, #F5FAF3 100%); border-top: 5px solid var(--green-primary);">
+        <div style="font-size: 3.5rem; margin-bottom: 0.5rem;">🎄 🎂 ✨</div>
+        <h1 style="font-size: 2.2rem; color: var(--green-darkest); margin-bottom: 0.75rem;">
+          Christmas Cake Challenge 2026
+        </h1>
+        <p style="font-size: 1.15rem; color: var(--text-muted); max-width: 650px; margin: 0 auto 2rem;">
+          Welcome to the official order collection and tracking portal for our Church Youth Group. 
+          Record customer cake bookings, collect payments, and track campaign performance in real-time.
+        </p>
+
+        <!-- Primary Action Buttons -->
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-bottom: 2rem;">
+          <a href="login.html" class="btn btn-primary" style="font-size: 1.05rem; padding: 0.85rem 2rem;">
+            👤 Youth Member Login
+          </a>
+          <a href="login.html?tab=request" class="btn btn-outline" style="font-size: 1.05rem; padding: 0.85rem 1.75rem;">
+            ✨ New Member? Request Access
+          </a>
+          <a href="login.html?tab=admin" class="btn btn-secondary" style="font-size: 1.05rem; padding: 0.85rem 1.5rem;">
+            🛡️ Admin Login
+          </a>
+        </div>
+
+        <!-- Connection Status Pill -->
+        <div style="margin-top: 1rem;">
+          <span id="system-status-pill" class="system-pill pill-warning">
+            <span class="status-indicator warning"></span> Checking System Status...
+          </span>
+        </div>
+      </div>
+
+      <!-- Feature Highlights -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
+        
+        <div class="card" style="margin-bottom: 0;">
+          <div style="font-size: 2rem; color: var(--green-primary); margin-bottom: 0.75rem;">📱</div>
+          <h3>Easy Mobile Ordering</h3>
+          <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Designed specifically for smartphone use. Enter customer orders, choose cake varieties and weights, and calculate subtotals in just a few taps.
+          </p>
+        </div>
+
+        <div class="card" style="margin-bottom: 0;">
+          <div style="font-size: 2rem; color: var(--red-primary); margin-bottom: 0.75rem;">💵</div>
+          <h3>Accurate Payment Tracking</h3>
+          <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Record advance payments, track remaining balances, and maintain clear receipt records across cash, UPI, and bank transfers.
+          </p>
+        </div>
+
+        <div class="card" style="margin-bottom: 0;">
+          <div style="font-size: 2rem; color: var(--gold-primary); margin-bottom: 0.75rem;">📊</div>
+          <h3>Google Sheets Storage</h3>
+          <p style="color: var(--text-muted); font-size: 0.95rem;">
+            All records persist directly in the Church Google Spreadsheet across 12 organized tabs with audit trail and Excel export.
+          </p>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <p style="margin-bottom: 0.4rem; font-weight: 600; color: #FFFFFF;">
+        Christmas Cake Challenge &bull; Church Youth Group, Pancode
+      </p>
+      <p style="font-size: 0.8rem; margin: 0; color: rgba(255,255,255,0.6);">
+        Protected by Role-Based Access Control &bull; Powered by Google Sheets API v4
+      </p>
+    </div>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/ui.js"></script>
+  <script>
+    // Automatically redirect if already logged in
+    document.addEventListener("DOMContentLoaded", () => {
+      UI.checkSystemHealth();
+      if (Auth.isLoggedIn()) {
+        if (Auth.isAdmin()) {
+          window.location.href = "admin/dashboard.html";
+        } else {
+          window.location.href = "dashboard.html";
+        }
+      }
+    });
+  </script>
+</body>
+</html>

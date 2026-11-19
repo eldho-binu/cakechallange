@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Tracking & Verification — Admin</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/admin.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎂</text></svg>">
+</head>
+<body>
+
+  <div class="admin-layout">
+    <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleSidebar()"></div>
+
+    <!-- Admin Sidebar -->
+    <aside class="admin-sidebar" id="admin-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-logo-icon" style="width: 36px; height: 36px; font-size: 1.4rem;">🎂</div>
+        <div class="sidebar-brand">
+          <h2>Cake Challenge</h2>
+          <span>Admin Portal &bull; Pancode</span>
+        </div>
+      </div>
+
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-item"><a href="dashboard.html"><span class="nav-icon">📊</span> Dashboard</a></li>
+        <li class="sidebar-nav-item"><a href="orders.html"><span class="nav-icon">📦</span> Master Orders</a></li>
+        <li class="sidebar-nav-item"><a href="customers.html"><span class="nav-icon">👥</span> Customers</a></li>
+        <li class="sidebar-nav-item"><a href="members.html"><span class="nav-icon">👤</span> Members</a></li>
+        <li class="sidebar-nav-item"><a href="requests.html"><span class="nav-icon">✨</span> Member Requests</a></li>
+        <li class="sidebar-nav-item"><a href="locations.html"><span class="nav-icon">📍</span> Locations</a></li>
+        <li class="sidebar-nav-item"><a href="cake-settings.html"><span class="nav-icon">🍰</span> Cake Settings</a></li>
+        <li class="sidebar-nav-item"><a href="custom-fields.html"><span class="nav-icon">⚙️</span> Custom Fields</a></li>
+        <li class="sidebar-nav-item active"><a href="payments.html"><span class="nav-icon">💳</span> Payment Tracking</a></li>
+        <li class="sidebar-nav-item"><a href="reports.html"><span class="nav-icon">📑</span> Reports & Excel</a></li>
+        <li class="sidebar-nav-item"><a href="activity-logs.html"><span class="nav-icon">📜</span> Activity Logs</a></li>
+        <li class="sidebar-nav-item"><a href="settings.html"><span class="nav-icon">🔧</span> System Settings</a></li>
+        <li class="sidebar-nav-item" style="margin-top: auto;"><a href="javascript:void(0)" onclick="Auth.logout()" style="color: #FFCDD2;"><span class="nav-icon">🚪</span> Logout</a></li>
+      </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="admin-main">
+      <header class="admin-topbar">
+        <div class="topbar-left">
+          <button class="sidebar-toggle-btn" onclick="toggleSidebar()">☰</button>
+          <h2 style="font-size: 1.25rem; margin: 0; color: var(--green-darkest);">Payment Verification & Audit</h2>
+        </div>
+        <div class="topbar-right">
+          <a href="reports.html" class="btn btn-outline btn-sm">📑 Payment Excel</a>
+        </div>
+      </header>
+
+      <main class="admin-content">
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+          <div class="filter-item" style="flex: 2; min-width: 240px;">
+            <input type="text" id="pay-filter-search" class="form-control" placeholder="🔍 Search by Payment ID, Order ID, Customer, Reference..." oninput="debounceFilter()">
+          </div>
+
+          <div class="filter-item">
+            <select id="pay-filter-verification" class="form-control" onchange="loadPayments()">
+              <option value="all">All Verification Statuses</option>
+              <option value="Pending Verification" selected>Pending Verification</option>
+              <option value="Verified">Verified</option>
+              <option value="Rejected">Rejected</option>
+            </select>
+          </div>
+
+          <div class="filter-item">
+            <select id="pay-filter-method" class="form-control" onchange="loadPayments()">
+              <option value="all">All Payment Methods</option>
+              <option value="Cash">Cash</option>
+              <option value="UPI / GPay">UPI / GPay</option>
+              <option value="Bank Transfer">Bank Transfer</option>
+            </select>
+          </div>
+
+          <div>
+            <button class="btn btn-secondary btn-sm" onclick="resetPayFilters()">Clear</button>
+          </div>
+        </div>
+
+        <!-- Payments Table -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2>All Payment Transactions</h2>
+              <span id="payments-count-badge" style="font-size: 0.85rem; color: var(--text-muted);">0 transactions</span>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Payment ID</th>
+                  <th>Order ID</th>
+                  <th>Customer</th>
+                  <th>Member</th>
+                  <th>Amount</th>
+                  <th>Date & Time</th>
+                  <th>Method & Ref</th>
+                  <th>Status</th>
+                  <th>Verified By</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="payments-tbody">
+                <tr>
+                  <td colspan="10" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+                    Loading payment records...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/ui.js"></script>
+
+  <script>
+    let payTimer = null;
+
+    function toggleSidebar() {
+      document.getElementById("admin-sidebar").classList.toggle("open");
+      document.getElementById("sidebar-backdrop").classList.toggle("active");
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      if (!Auth.requireRole("admin")) return;
+      UI.checkSystemHealth();
+      loadPayments();
+    });
+
+    function debounceFilter() {
+      clearTimeout(payTimer);
+      payTimer = setTimeout(loadPayments, 300);
+    }
+
+    function resetPayFilters() {
+      document.getElementById("pay-filter-search").value = "";
+      document.getElementById("pay-filter-verification").value = "all";
+      document.getElementById("pay-filter-method").value = "all";
+      loadPayments();
+    }
+
+    async function loadPayments() {
+      const tbody = document.getElementById("payments-tbody");
+      const countBadge = document.getElementById("payments-count-badge");
+      const search = document.getElementById("pay-filter-search").value.trim();
+      const verification = document.getElementById("pay-filter-verification").value;
+      const method = document.getElementById("pay-filter-method").value;
+
+      try {
+        const res = await API.get("/api/admin/payments", {
+          search,
+          verification_status: verification,
+          method
+        });
+
+        if (res.success && Array.isArray(res.data)) {
+          const payments = res.data;
+          countBadge.textContent = `${payments.length} payment(s) found`;
+
+          if (payments.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 2rem;">No matching payments found.</td></tr>`;
+            return;
+          }
+
+          tbody.innerHTML = payments.map(p => `
+            <tr>
+              <td><strong>${p['Payment ID']}</strong></td>
+              <td><a href="orders.html?search=${encodeURIComponent(p['Order ID'])}"><strong>${p['Order ID']}</strong></a></td>
+              <td>${p.customer_name || 'Customer'}</td>
+              <td>${p.member_name || 'Member'}</td>
+              <td><strong style="font-size: 1.05rem; color: var(--green-darkest);">${UI.formatINR(p['Payment Amount'])}</strong></td>
+              <td>${UI.formatDate(p['Payment Date'])} <small style="color: var(--text-muted);">${p['Payment Time'] || ''}</small></td>
+              <td>
+                ${p['Payment Method']}<br>
+                ${p['Payment Reference'] ? `<small style="color: var(--text-muted);">Ref: ${p['Payment Reference']}</small>` : ''}
+              </td>
+              <td>${UI.getVerificationBadge(p['Verification Status'])}</td>
+              <td><small>${p['Verified By'] || '-'}</small></td>
+              <td>
+                <div class="action-btn-group">
+                  ${p['Verification Status'] !== 'Verified' ? `
+                    <button class="btn btn-forest btn-sm" onclick="verifySinglePayment('${p['Payment ID']}')" title="Verify Payment">
+                      ✓ Verify
+                    </button>
+                  ` : ''}
+                  ${p['Verification Status'] !== 'Rejected' ? `
+                    <button class="btn btn-secondary btn-sm" onclick="rejectSinglePayment('${p['Payment ID']}')" title="Reject Payment">
+                      ✗ Reject
+                    </button>
+                  ` : ''}
+                </div>
+              </td>
+            </tr>
+          `).join("");
+        }
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: red;">Failed to load payments.</td></tr>`;
+      }
+    }
+
+    async function verifySinglePayment(pid) {
+      try {
+        const res = await API.post(`/api/admin/payments/${pid}/verify`, {});
+        if (res.success) {
+          UI.showToast("Payment verified successfully!", "success");
+          loadPayments();
+        } else {
+          UI.showToast(res.error || "Failed to verify payment.", "error");
+        }
+      } catch (e) {
+        UI.showToast("Connection error.", "error");
+      }
+    }
+
+    function rejectSinglePayment(pid) {
+      UI.confirm(
+        "Reject Payment?",
+        `Reject payment <strong>${pid}</strong>? This amount will be deducted from the customer's recorded paid balance.`,
+        async () => {
+          try {
+            const res = await API.post(`/api/admin/payments/${pid}/reject`, {});
+            if (res.success) {
+              UI.showToast("Payment marked as Rejected.", "warning");
+              loadPayments();
+            } else {
+              UI.showToast(res.error || "Failed to reject.", "error");
+            }
+          } catch (e) {
+            UI.showToast("Connection error.", "error");
+          }
+        }
+      );
+    }
+  </script>
+</body>
+</html>

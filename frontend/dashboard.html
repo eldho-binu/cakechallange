@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Dashboard — Christmas Cake Challenge</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎂</text></svg>">
+</head>
+<body>
+
+  <!-- Site Header -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="dashboard.html" class="brand-wrapper">
+        <div class="brand-logo-icon">🎂</div>
+        <div class="brand-titles">
+          <h1>Christmas Cake Challenge</h1>
+          <span id="header-user-name">Youth Group Member</span>
+        </div>
+      </a>
+      <nav class="main-nav" id="main-nav">
+        <a href="dashboard.html" class="nav-link active">🏠 Home</a>
+        <a href="add-order.html" class="nav-link">➕ Add Order</a>
+        <a href="my-orders.html" class="nav-link">📦 My Orders</a>
+        <a href="reports.html" class="nav-link">📊 My Reports</a>
+        <a href="javascript:void(0)" onclick="Auth.logout()" class="nav-link" style="color: #FFCDD2;">🚪 Logout</a>
+      </nav>
+      <button class="mobile-nav-toggle" onclick="document.getElementById('main-nav').classList.toggle('active')">☰</button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main style="flex: 1; padding: 2rem 0;">
+    <div class="container">
+
+      <!-- Friendly Welcome & Big Action Banner -->
+      <div class="card" style="background: linear-gradient(135deg, var(--green-darkest) 0%, var(--green-primary) 100%); color: #FFFFFF; border: none; padding: 2rem 1.75rem; text-align: center; margin-bottom: 2rem;">
+        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎄 🎂 ✨</div>
+        <h1 id="welcome-heading" style="color: #FFFFFF; font-size: 1.85rem; margin-bottom: 0.5rem;">
+          Welcome back!
+        </h1>
+        <p style="color: rgba(255,255,255,0.9); font-size: 1.1rem; max-width: 550px; margin: 0 auto 1.75rem;">
+          Collect cake orders from your family, friends, and neighbours. Tap the big button below to enter a booking.
+        </p>
+
+        <!-- Huge Primary Action Button -->
+        <a href="add-order.html" class="btn btn-primary" style="font-size: 1.25rem; padding: 1rem 2.5rem; border-radius: var(--radius-md); box-shadow: 0 6px 20px rgba(0,0,0,0.3);">
+          ➕ Record a New Cake Order
+        </a>
+
+        <div style="margin-top: 1.25rem;">
+          <span id="system-status-pill" class="system-pill pill-online">
+            <span class="status-indicator online"></span> Google Sheets Connected
+          </span>
+        </div>
+      </div>
+
+      <!-- 4 Big Simple Number Cards -->
+      <div class="kpi-grid">
+        
+        <div class="kpi-card kpi-gold">
+          <div class="kpi-icon">🎂</div>
+          <div>
+            <div class="kpi-label">Cakes Sold</div>
+            <div class="kpi-value" id="kpi-total-cakes">0</div>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon">📦</div>
+          <div>
+            <div class="kpi-label">Total Orders</div>
+            <div class="kpi-value" id="kpi-total-orders">0</div>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background: #E8F5E9; color: #1E7E34;">💵</div>
+          <div>
+            <div class="kpi-label">Money Collected</div>
+            <div class="kpi-value" id="kpi-total-collected" style="color: #1E7E34;">₹0.00</div>
+          </div>
+        </div>
+
+        <div class="kpi-card kpi-red">
+          <div class="kpi-icon">⏳</div>
+          <div>
+            <div class="kpi-label">Pending Balance</div>
+            <div class="kpi-value" id="kpi-total-pending" style="color: var(--red-primary);">₹0.00</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Recent Orders List -->
+      <div class="card">
+        <div class="card-header">
+          <h2>My Recent Bookings</h2>
+          <a href="my-orders.html" style="font-size: 1rem; font-weight: 700;">View All Orders →</a>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Customer Name</th>
+                <th>Cakes</th>
+                <th>Total</th>
+                <th>Paid</th>
+                <th>Remaining</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="recent-orders-tbody">
+              <tr>
+                <td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                  Loading your orders...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <p style="margin-bottom: 0.3rem; font-weight: 700;">Christmas Cake Challenge &bull; Church Youth Group, Pancode</p>
+      <p style="font-size: 0.85rem; margin: 0; color: rgba(255,255,255,0.7);">All records are saved directly to Google Sheets</p>
+    </div>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/ui.js"></script>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      if (!Auth.requireRole("member")) return;
+
+      const user = Auth.getUser();
+      document.getElementById("header-user-name").textContent = user.name;
+      document.getElementById("welcome-heading").textContent = `Hello, ${user.name}! 🎄`;
+
+      UI.checkSystemHealth();
+      loadMemberSummary();
+      loadRecentOrders();
+    });
+
+    async function loadMemberSummary() {
+      try {
+        const res = await API.get("/api/reports/member-summary");
+        if (res.success && res.data) {
+          const d = res.data;
+          document.getElementById("kpi-total-orders").textContent = d.total_orders;
+          document.getElementById("kpi-total-cakes").textContent = d.total_cakes;
+          document.getElementById("kpi-total-collected").textContent = UI.formatINR(d.total_collected);
+          document.getElementById("kpi-total-pending").textContent = UI.formatINR(d.total_pending);
+        }
+      } catch (e) {
+        console.error("Error loading summary:", e);
+      }
+    }
+
+    async function loadRecentOrders() {
+      const tbody = document.getElementById("recent-orders-tbody");
+      try {
+        const res = await API.get("/api/orders/my-orders");
+        if (res.success && Array.isArray(res.data)) {
+          const orders = res.data.slice(0, 5);
+          if (orders.length === 0) {
+            tbody.innerHTML = `
+              <tr>
+                <td colspan="7">
+                  <div style="text-align: center; padding: 2.5rem 1rem;">
+                    <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎂</div>
+                    <h3 style="margin-bottom: 0.5rem;">No orders recorded yet!</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 1.25rem;">Tap the button above to record your very first cake order.</p>
+                    <a href="add-order.html" class="btn btn-primary btn-sm">➕ Add First Order</a>
+                  </div>
+                </td>
+              </tr>
+            `;
+            return;
+          }
+
+          tbody.innerHTML = orders.map(o => `
+            <tr>
+              <td><strong><a href="my-orders.html?search=${encodeURIComponent(o['Order ID'])}">${o['Order ID']}</a></strong></td>
+              <td>${o.customer_name || 'Customer'}</td>
+              <td><span style="font-size: 0.9rem; color: var(--text-muted);">${o.items_summary || '-'}</span></td>
+              <td><strong>${UI.formatINR(o['Total Amount'])}</strong></td>
+              <td style="color: var(--status-paid); font-weight: 700;">${UI.formatINR(o['Total Amount Paid'])}</td>
+              <td style="color: var(--red-primary); font-weight: 700;">${UI.formatINR(o['Remaining Amount'])}</td>
+              <td>${UI.getPaymentBadge(o['Payment Status'])}</td>
+            </tr>
+          `).join("");
+        }
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: red;">Failed to load orders.</td></tr>`;
+      }
+    }
+  </script>
+</body>
+</html>

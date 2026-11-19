@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reports & Excel Exports — Admin</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/admin.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎂</text></svg>">
+</head>
+<body>
+
+  <div class="admin-layout">
+    <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleSidebar()"></div>
+
+    <!-- Admin Sidebar -->
+    <aside class="admin-sidebar" id="admin-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-logo-icon" style="width: 36px; height: 36px; font-size: 1.4rem;">🎂</div>
+        <div class="sidebar-brand">
+          <h2>Cake Challenge</h2>
+          <span>Admin Portal &bull; Pancode</span>
+        </div>
+      </div>
+
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-item"><a href="dashboard.html"><span class="nav-icon">📊</span> Dashboard</a></li>
+        <li class="sidebar-nav-item"><a href="orders.html"><span class="nav-icon">📦</span> Master Orders</a></li>
+        <li class="sidebar-nav-item"><a href="customers.html"><span class="nav-icon">👥</span> Customers</a></li>
+        <li class="sidebar-nav-item"><a href="members.html"><span class="nav-icon">👤</span> Members</a></li>
+        <li class="sidebar-nav-item"><a href="requests.html"><span class="nav-icon">✨</span> Member Requests</a></li>
+        <li class="sidebar-nav-item"><a href="locations.html"><span class="nav-icon">📍</span> Locations</a></li>
+        <li class="sidebar-nav-item"><a href="cake-settings.html"><span class="nav-icon">🍰</span> Cake Settings</a></li>
+        <li class="sidebar-nav-item"><a href="custom-fields.html"><span class="nav-icon">⚙️</span> Custom Fields</a></li>
+        <li class="sidebar-nav-item"><a href="payments.html"><span class="nav-icon">💳</span> Payment Tracking</a></li>
+        <li class="sidebar-nav-item active"><a href="reports.html"><span class="nav-icon">📑</span> Reports & Excel</a></li>
+        <li class="sidebar-nav-item"><a href="activity-logs.html"><span class="nav-icon">📜</span> Activity Logs</a></li>
+        <li class="sidebar-nav-item"><a href="settings.html"><span class="nav-icon">🔧</span> System Settings</a></li>
+        <li class="sidebar-nav-item" style="margin-top: auto;"><a href="javascript:void(0)" onclick="Auth.logout()" style="color: #FFCDD2;"><span class="nav-icon">🚪</span> Logout</a></li>
+      </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="admin-main">
+      <header class="admin-topbar">
+        <div class="topbar-left">
+          <button class="sidebar-toggle-btn" onclick="toggleSidebar()">☰</button>
+          <h2 style="font-size: 1.25rem; margin: 0; color: var(--green-darkest);">Executive Reports & Excel Exports</h2>
+        </div>
+        <div class="topbar-right">
+          <button class="btn btn-primary btn-sm" onclick="downloadMasterWorkbook()">
+            📥 Download Complete Master Workbook (.xlsx)
+          </button>
+        </div>
+      </header>
+
+      <main class="admin-content">
+
+        <!-- Master Workbook Highlight Banner -->
+        <div class="card" style="background: linear-gradient(135deg, #14452F 0%, #0D2C1E 100%); color: #FFFFFF; border: none; padding: 2rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem;">
+            <div>
+              <div style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; color: var(--gold-subtle); font-weight: 700;">
+                ⭐ OFFICIAL PARISH WORKBOOK
+              </div>
+              <h2 style="color: #FFFFFF; font-size: 1.6rem; margin: 0.25rem 0 0.5rem;">
+                Complete 9-Worksheet Master Excel Workbook
+              </h2>
+              <p style="color: rgba(255,255,255,0.85); font-size: 0.95rem; max-width: 600px; margin: 0;">
+                Contains separate styled worksheets for All Orders, Individual Cake Items, Registered Members (excluding confidential hashes), Customer Registry, Complete Payment Transactions, Member Performance Summary, Location Breakdown, Cake Variety Statistics, and Audited Financial Summary.
+              </p>
+            </div>
+            <div>
+              <button class="btn btn-primary" onclick="downloadMasterWorkbook()" style="background: var(--red-primary); padding: 0.85rem 1.75rem; font-size: 1.05rem;">
+                📥 Export Master Workbook (.xlsx)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 9 Worksheets Overview Grid -->
+        <h3 style="color: var(--green-darkest); margin-bottom: 1rem;">Worksheets Included in Master Export</h3>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; margin-bottom: 2rem;">
+          
+          <div class="card" style="margin-bottom: 0;">
+            <h4>1. All Orders</h4>
+            <p style="font-size: 0.88rem; color: var(--text-muted); margin: 0.4rem 0 0;">
+              Every confirmed order with Customer Name, Phone, Member, Date, Total, Paid, Balance, and Delivery notes.
+            </p>
+          </div>
+
+          <div class="card" style="margin-bottom: 0;">
+            <h4>2. Order Items</h4>
+            <p style="font-size: 0.88rem; color: var(--text-muted); margin: 0.4rem 0 0;">
+              Detailed breakdown of every cake variety, selected weight, quantity ordered, and locked historical price.
+            </p>
+          </div>
+
+          <div class="card" style="margin-bottom: 0;">
+            <h4>3. Members</h4>
+            <p style="font-size: 0.88rem; color: var(--text-muted); margin: 0.4rem 0 0;">
+              Complete youth roster with contact numbers, wards, and status. Codes and hashes strictly excluded.
+            </p>
+          </div>
+
+          <div class="card" style="margin-bottom: 0;">
+            <h4>4. Customer Details</h4>
+            <p style="font-size: 0.88rem; color: var(--text-muted); margin: 0.4rem 0 0;">
+              Parish customer contacts, residential addresses, and landmarks for delivery logistics.
+            </p>
+          </div>
+
+          <div class="card" style="margin-bottom: 0;">
+            <h4>5. Payment History</h4>
+            <p style="font-size: 0.88rem; color: var(--text-muted); margin: 0.4rem 0 0;">
+              Every single payment transaction with payment method, UPI reference, date, time, and verification state.
+            </p>
+          </div>
+
+          <div class="card" style="margin-bottom: 0;">
+            <h4>6. Member Summary</h4>
+            <p style="font-size: 0.88rem; color: var(--text-muted); margin: 0.4rem 0 0;">
+              Leaderboard showing total cakes sold, gross sales, collections, and outstanding balance per member.
+            </p>
+          </div>
+
+          <div class="card" style="margin-bottom: 0;">
+            <h4>7. Location Summary</h4>
+            <p style="font-size: 0.88rem; color: var(--text-muted); margin: 0.4rem 0 0;">
+              Ward-wise order totals, revenue generated, collections, and pending delivery balances.
+            </p>
+          </div>
+
+          <div class="card" style="margin-bottom: 0;">
+            <h4>8. Cake Summary</h4>
+            <p style="font-size: 0.88rem; color: var(--text-muted); margin: 0.4rem 0 0;">
+              Total units sold and revenue per cake variety and weight (Plum Cake, Chocolate Cake, etc.).
+            </p>
+          </div>
+
+          <div class="card" style="margin-bottom: 0;">
+            <h4>9. Financial Summary</h4>
+            <p style="font-size: 0.88rem; color: var(--text-muted); margin: 0.4rem 0 0;">
+              High-level audited financials: Gross Sales, Verified Collections, Unverified Payments, and Net Outstanding.
+            </p>
+          </div>
+
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/ui.js"></script>
+
+  <script>
+    function toggleSidebar() {
+      document.getElementById("admin-sidebar").classList.toggle("open");
+      document.getElementById("sidebar-backdrop").classList.toggle("active");
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      if (!Auth.requireRole("admin")) return;
+      UI.checkSystemHealth();
+    });
+
+    function downloadMasterWorkbook() {
+      UI.showToast("Generating comprehensive 9-worksheet Excel workbook...", "info");
+      const url = API.getDownloadUrl("/api/reports/admin-excel");
+      window.location.href = url;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Activity Logs & Audit Trail — Admin</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/admin.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎂</text></svg>">
+</head>
+<body>
+
+  <div class="admin-layout">
+    <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleSidebar()"></div>
+
+    <!-- Admin Sidebar -->
+    <aside class="admin-sidebar" id="admin-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-logo-icon" style="width: 36px; height: 36px; font-size: 1.4rem;">🎂</div>
+        <div class="sidebar-brand">
+          <h2>Cake Challenge</h2>
+          <span>Admin Portal &bull; Pancode</span>
+        </div>
+      </div>
+
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-item"><a href="dashboard.html"><span class="nav-icon">📊</span> Dashboard</a></li>
+        <li class="sidebar-nav-item"><a href="orders.html"><span class="nav-icon">📦</span> Master Orders</a></li>
+        <li class="sidebar-nav-item"><a href="customers.html"><span class="nav-icon">👥</span> Customers</a></li>
+        <li class="sidebar-nav-item"><a href="members.html"><span class="nav-icon">👤</span> Members</a></li>
+        <li class="sidebar-nav-item"><a href="requests.html"><span class="nav-icon">✨</span> Member Requests</a></li>
+        <li class="sidebar-nav-item"><a href="locations.html"><span class="nav-icon">📍</span> Locations</a></li>
+        <li class="sidebar-nav-item"><a href="cake-settings.html"><span class="nav-icon">🍰</span> Cake Settings</a></li>
+        <li class="sidebar-nav-item"><a href="custom-fields.html"><span class="nav-icon">⚙️</span> Custom Fields</a></li>
+        <li class="sidebar-nav-item"><a href="payments.html"><span class="nav-icon">💳</span> Payment Tracking</a></li>
+        <li class="sidebar-nav-item"><a href="reports.html"><span class="nav-icon">📑</span> Reports & Excel</a></li>
+        <li class="sidebar-nav-item active"><a href="activity-logs.html"><span class="nav-icon">📜</span> Activity Logs</a></li>
+        <li class="sidebar-nav-item"><a href="settings.html"><span class="nav-icon">🔧</span> System Settings</a></li>
+        <li class="sidebar-nav-item" style="margin-top: auto;"><a href="javascript:void(0)" onclick="Auth.logout()" style="color: #FFCDD2;"><span class="nav-icon">🚪</span> Logout</a></li>
+      </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="admin-main">
+      <header class="admin-topbar">
+        <div class="topbar-left">
+          <button class="sidebar-toggle-btn" onclick="toggleSidebar()">☰</button>
+          <h2 style="font-size: 1.25rem; margin: 0; color: var(--green-darkest);">System Activity Logs & Audit Trail</h2>
+        </div>
+        <div class="topbar-right">
+          <span style="font-size: 0.85rem; color: var(--text-muted);">Immutable Security Log</span>
+        </div>
+      </header>
+
+      <main class="admin-content">
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+          <div class="filter-item" style="flex: 2; min-width: 240px;">
+            <input type="text" id="log-filter-search" class="form-control" placeholder="🔍 Search by User, Description, Record ID..." oninput="debounceFilter()">
+          </div>
+
+          <div class="filter-item">
+            <select id="log-filter-action" class="form-control" onchange="loadLogs()">
+              <option value="all">All Action Types</option>
+              <option value="LOGIN">Admin Login</option>
+              <option value="MEMBER_LOGIN">Member Login</option>
+              <option value="ORDER_CREATED">Order Created</option>
+              <option value="ORDER_UPDATED">Order Updated</option>
+              <option value="PAYMENT_RECORDED">Payment Recorded</option>
+              <option value="PAYMENT_VERIFIED">Payment Verified</option>
+              <option value="MEMBER_CREATED">Member Created</option>
+              <option value="MEMBER_APPROVED">Member Approved</option>
+              <option value="EXCEL_EXPORT">Excel Download</option>
+            </select>
+          </div>
+
+          <div class="filter-item">
+            <input type="date" id="log-filter-from" class="form-control" onchange="loadLogs()" title="From Date">
+          </div>
+
+          <div class="filter-item">
+            <input type="date" id="log-filter-to" class="form-control" onchange="loadLogs()" title="To Date">
+          </div>
+
+          <div>
+            <button class="btn btn-secondary btn-sm" onclick="resetLogFilters()">Clear</button>
+          </div>
+        </div>
+
+        <!-- Activity Logs Table -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2>Audit Trail</h2>
+              <span id="log-count-badge" style="font-size: 0.85rem; color: var(--text-muted);">0 log entries</span>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Log ID</th>
+                  <th>User / Admin</th>
+                  <th>Action</th>
+                  <th>Description</th>
+                  <th>Related Record</th>
+                  <th>Prev Value</th>
+                  <th>New Value</th>
+                  <th>Date & Time</th>
+                </tr>
+              </thead>
+              <tbody id="logs-tbody">
+                <tr>
+                  <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                    Loading audit trail...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/ui.js"></script>
+
+  <script>
+    let logTimer = null;
+
+    function toggleSidebar() {
+      document.getElementById("admin-sidebar").classList.toggle("open");
+      document.getElementById("sidebar-backdrop").classList.toggle("active");
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      if (!Auth.requireRole("admin")) return;
+      UI.checkSystemHealth();
+      loadLogs();
+    });
+
+    function debounceFilter() {
+      clearTimeout(logTimer);
+      logTimer = setTimeout(loadLogs, 300);
+    }
+
+    function resetLogFilters() {
+      document.getElementById("log-filter-search").value = "";
+      document.getElementById("log-filter-action").value = "all";
+      document.getElementById("log-filter-from").value = "";
+      document.getElementById("log-filter-to").value = "";
+      loadLogs();
+    }
+
+    async function loadLogs() {
+      const tbody = document.getElementById("logs-tbody");
+      const countBadge = document.getElementById("log-count-badge");
+      const search = document.getElementById("log-filter-search").value.trim();
+      const action_type = document.getElementById("log-filter-action").value;
+      const date_from = document.getElementById("log-filter-from").value;
+      const date_to = document.getElementById("log-filter-to").value;
+
+      try {
+        const res = await API.get("/api/admin/activity-logs", {
+          search,
+          action_type,
+          date_from,
+          date_to
+        });
+
+        if (res.success && Array.isArray(res.data)) {
+          const logs = res.data;
+          countBadge.textContent = `${logs.length} log entry(ies)`;
+
+          if (logs.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem;">No logs found.</td></tr>`;
+            return;
+          }
+
+          tbody.innerHTML = logs.map(l => `
+            <tr>
+              <td><strong>${l['Log ID']}</strong></td>
+              <td><strong>${l['Admin ID or Username']}</strong></td>
+              <td><span style="background: var(--bg-muted); font-size: 0.8rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 4px;">${l['Action Type']}</span></td>
+              <td>${l['Action Description']}</td>
+              <td>${l['Related Record ID'] ? `<code>${l['Related Record ID']}</code>` : '-'}</td>
+              <td><small>${l['Previous Value'] || '-'}</small></td>
+              <td><small>${l['New Value'] || '-'}</small></td>
+              <td>${UI.formatDate(l['Date'])} <small style="color: var(--text-muted);">${l['Time'] || ''}</small></td>
+            </tr>
+          `).join("");
+        }
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: red;">Failed to load logs.</td></tr>`;
+      }
+    }
+  </script>
+</body>
+</html>

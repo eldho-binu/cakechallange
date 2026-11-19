@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cake Settings & Pricing — Admin</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/admin.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎂</text></svg>">
+</head>
+<body>
+
+  <div class="admin-layout">
+    <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleSidebar()"></div>
+
+    <!-- Admin Sidebar -->
+    <aside class="admin-sidebar" id="admin-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-logo-icon" style="width: 36px; height: 36px; font-size: 1.4rem;">🎂</div>
+        <div class="sidebar-brand">
+          <h2>Cake Challenge</h2>
+          <span>Admin Portal &bull; Pancode</span>
+        </div>
+      </div>
+
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-item"><a href="dashboard.html"><span class="nav-icon">📊</span> Dashboard</a></li>
+        <li class="sidebar-nav-item"><a href="orders.html"><span class="nav-icon">📦</span> Master Orders</a></li>
+        <li class="sidebar-nav-item"><a href="customers.html"><span class="nav-icon">👥</span> Customers</a></li>
+        <li class="sidebar-nav-item"><a href="members.html"><span class="nav-icon">👤</span> Members</a></li>
+        <li class="sidebar-nav-item"><a href="requests.html"><span class="nav-icon">✨</span> Member Requests</a></li>
+        <li class="sidebar-nav-item"><a href="locations.html"><span class="nav-icon">📍</span> Locations</a></li>
+        <li class="sidebar-nav-item active"><a href="cake-settings.html"><span class="nav-icon">🍰</span> Cake Settings</a></li>
+        <li class="sidebar-nav-item"><a href="custom-fields.html"><span class="nav-icon">⚙️</span> Custom Fields</a></li>
+        <li class="sidebar-nav-item"><a href="payments.html"><span class="nav-icon">💳</span> Payment Tracking</a></li>
+        <li class="sidebar-nav-item"><a href="reports.html"><span class="nav-icon">📑</span> Reports & Excel</a></li>
+        <li class="sidebar-nav-item"><a href="activity-logs.html"><span class="nav-icon">📜</span> Activity Logs</a></li>
+        <li class="sidebar-nav-item"><a href="settings.html"><span class="nav-icon">🔧</span> System Settings</a></li>
+        <li class="sidebar-nav-item" style="margin-top: auto;"><a href="javascript:void(0)" onclick="Auth.logout()" style="color: #FFCDD2;"><span class="nav-icon">🚪</span> Logout</a></li>
+      </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="admin-main">
+      <header class="admin-topbar">
+        <div class="topbar-left">
+          <button class="sidebar-toggle-btn" onclick="toggleSidebar()">☰</button>
+          <h2 style="font-size: 1.25rem; margin: 0; color: var(--green-darkest);">Dynamic Cake Catalog & Official Pricing</h2>
+        </div>
+        <div class="topbar-right">
+          <button class="btn btn-primary btn-sm" onclick="openAddCakeModal()">
+            ➕ Add Cake Variety
+          </button>
+        </div>
+      </header>
+
+      <main class="admin-content">
+
+        <!-- Cake Varieties Table -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2>Cake Catalog</h2>
+              <span style="font-size: 0.85rem; color: var(--text-muted);">Manage weights and official rates in Indian Rupees (₹)</span>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Cake ID</th>
+                  <th>Variety Name</th>
+                  <th>Description</th>
+                  <th>Available Weights & Prices</th>
+                  <th>Status</th>
+                  <th>Last Updated</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="cakes-tbody">
+                <tr>
+                  <td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                    Loading cake catalog...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Add / Edit Cake Modal -->
+  <div id="cake-modal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3 id="modal-cake-title">Add Cake Variety</h3>
+        <button class="modal-close" onclick="closeCakeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="edit-cake-id">
+
+        <div class="form-group">
+          <label class="form-label">Cake Variety Name <span class="required">*</span></label>
+          <input type="text" id="modal-cake-name" class="form-control" placeholder="e.g. Plum Cake (Traditional)" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea id="modal-cake-desc" class="form-control" rows="2" placeholder="e.g. Rich festive dry fruits and spices"></textarea>
+        </div>
+
+        <h4 style="font-size: 0.95rem; color: var(--green-darkest); margin: 1rem 0 0.5rem;">Weights & Official Prices</h4>
+        <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+          Configure at least one weight option and its official price.
+        </p>
+
+        <div id="weights-prices-container">
+          <!-- Dynamic weight & price pairs -->
+        </div>
+
+        <button type="button" class="btn btn-outline btn-sm" onclick="addWeightPriceRow()" style="margin-top: 0.5rem;">
+          ➕ Add Weight Option
+        </button>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeCakeModal()">Cancel</button>
+        <button class="btn btn-primary" id="btn-save-cake" onclick="saveCake()">Save Cake Variety</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/ui.js"></script>
+
+  <script>
+    function toggleSidebar() {
+      document.getElementById("admin-sidebar").classList.toggle("open");
+      document.getElementById("sidebar-backdrop").classList.toggle("active");
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      if (!Auth.requireRole("admin")) return;
+      UI.checkSystemHealth();
+      loadCakes();
+    });
+
+    async function loadCakes() {
+      const tbody = document.getElementById("cakes-tbody");
+      try {
+        const res = await API.get("/api/admin/cakes");
+        if (res.success && Array.isArray(res.data)) {
+          const cakes = res.data;
+          if (cakes.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 2rem;">No cakes configured.</td></tr>`;
+            return;
+          }
+
+          tbody.innerHTML = cakes.map(c => {
+            const weights = c.available_weights || [];
+            const prices = c.prices || {};
+            const pricePills = weights.map(w => {
+              const p = prices[w] !== undefined ? UI.formatINR(prices[w]) : '-';
+              return `<span style="display: inline-block; background: var(--green-surface); padding: 0.2rem 0.55rem; border-radius: 4px; font-size: 0.82rem; margin: 2px; border: 1px solid var(--border-color);"><strong>${w}:</strong> ${p}</span>`;
+            }).join(" ");
+
+            return `
+              <tr>
+                <td><strong>${c.cake_id}</strong></td>
+                <td><strong>${c.cake_name}</strong></td>
+                <td><small style="color: var(--text-muted);">${c.description || '-'}</small></td>
+                <td>${pricePills || '-'}</td>
+                <td>
+                  <span class="badge ${c.status === 'Active' ? 'badge-verified' : 'badge-rejected'}">
+                    ${c.status || 'Active'}
+                  </span>
+                </td>
+                <td><small>${c.last_updated || '-'}</small></td>
+                <td>
+                  <div class="action-btn-group">
+                    <button class="btn btn-outline btn-sm" onclick='openEditCakeModal(${JSON.stringify(c)})' title="Edit">
+                      ✏️ Edit
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="toggleCakeStatus('${c.cake_id}')" title="Toggle Active">
+                      ${c.status === 'Active' ? '🛑 Deactivate' : '✅ Activate'}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            `;
+          }).join("");
+        }
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: red;">Failed to load cake settings.</td></tr>`;
+      }
+    }
+
+    function addWeightPriceRow(weightVal = "500 g", priceVal = "") {
+      const container = document.getElementById("weights-prices-container");
+      const row = document.createElement("div");
+      row.className = "weight-price-row";
+      row.style.display = "flex";
+      row.style.gap = "0.75rem";
+      row.style.marginBottom = "0.5rem";
+      row.style.alignItems = "center";
+
+      row.innerHTML = `
+        <input type="text" class="form-control wp-weight" placeholder="Weight (e.g. 500 g)" value="${weightVal}" style="flex: 1;" required>
+        <input type="number" class="form-control wp-price" placeholder="Price (₹)" value="${priceVal}" min="1" step="any" style="flex: 1;" required>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="this.parentElement.remove()" title="Remove" style="color: red;">&times;</button>
+      `;
+
+      container.appendChild(row);
+    }
+
+    function openAddCakeModal() {
+      document.getElementById("edit-cake-id").value = "";
+      document.getElementById("modal-cake-title").textContent = "Add New Cake Variety";
+      document.getElementById("modal-cake-name").value = "";
+      document.getElementById("modal-cake-desc").value = "";
+      document.getElementById("weights-prices-container").innerHTML = "";
+      addWeightPriceRow("500 g", "250");
+      addWeightPriceRow("1 kg", "500");
+      document.getElementById("cake-modal").classList.add("active");
+    }
+
+    function openEditCakeModal(c) {
+      document.getElementById("edit-cake-id").value = c.cake_id;
+      document.getElementById("modal-cake-title").textContent = `Edit Cake: ${c.cake_name}`;
+      document.getElementById("modal-cake-name").value = c.cake_name || "";
+      document.getElementById("modal-cake-desc").value = c.description || "";
+      
+      const container = document.getElementById("weights-prices-container");
+      container.innerHTML = "";
+      const weights = c.available_weights || [];
+      const prices = c.prices || {};
+
+      if (weights.length > 0) {
+        weights.forEach(w => {
+          addWeightPriceRow(w, prices[w] !== undefined ? prices[w] : "");
+        });
+      } else {
+        addWeightPriceRow("500 g", "250");
+      }
+
+      document.getElementById("cake-modal").classList.add("active");
+    }
+
+    function closeCakeModal() {
+      document.getElementById("cake-modal").classList.remove("active");
+    }
+
+    async function saveCake() {
+      const cid = document.getElementById("edit-cake-id").value;
+      const name = document.getElementById("modal-cake-name").value.trim();
+      const desc = document.getElementById("modal-cake-desc").value.trim();
+
+      if (!name) {
+        UI.showToast("Cake name is required.", "error");
+        return;
+      }
+
+      const weights = [];
+      const prices = {};
+
+      document.querySelectorAll(".weight-price-row").forEach(row => {
+        const w = row.querySelector(".wp-weight").value.trim();
+        const p = parseFloat(row.querySelector(".wp-price").value) || 0;
+        if (w && p > 0) {
+          weights.push(w);
+          prices[w] = p;
+        }
+      });
+
+      if (weights.length === 0) {
+        UI.showToast("Please specify at least one weight and positive price.", "error");
+        return;
+      }
+
+      const btn = document.getElementById("btn-save-cake");
+      btn.disabled = true;
+
+      try {
+        if (!cid) {
+          const res = await API.post("/api/admin/cakes", {
+            name, description: desc, weights, prices
+          });
+          if (res.success) {
+            UI.showToast("Cake variety added!", "success");
+            closeCakeModal();
+            loadCakes();
+          } else {
+            UI.showToast(res.error || "Failed to add cake.", "error");
+          }
+        } else {
+          const res = await API.put(`/api/admin/cakes/${cid}`, {
+            name, description: desc, weights, prices
+          });
+          if (res.success) {
+            UI.showToast("Cake settings updated!", "success");
+            closeCakeModal();
+            loadCakes();
+          } else {
+            UI.showToast(res.error || "Failed to update cake.", "error");
+          }
+        }
+      } catch (e) {
+        UI.showToast("Connection error.", "error");
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function toggleCakeStatus(cid) {
+      try {
+        const res = await API.post(`/api/admin/cakes/${cid}/toggle-status`, {});
+        if (res.success) {
+          UI.showToast(`Cake status changed to ${res.new_status}.`, "info");
+          loadCakes();
+        }
+      } catch (e) {
+        UI.showToast("Error updating cake status.", "error");
+      }
+    }
+  </script>
+</body>
+</html>

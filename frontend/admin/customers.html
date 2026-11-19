@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customers Management — Admin</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/admin.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎂</text></svg>">
+</head>
+<body>
+
+  <div class="admin-layout">
+    <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleSidebar()"></div>
+
+    <!-- Admin Sidebar -->
+    <aside class="admin-sidebar" id="admin-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-logo-icon" style="width: 36px; height: 36px; font-size: 1.4rem;">🎂</div>
+        <div class="sidebar-brand">
+          <h2>Cake Challenge</h2>
+          <span>Admin Portal &bull; Pancode</span>
+        </div>
+      </div>
+
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-item"><a href="dashboard.html"><span class="nav-icon">📊</span> Dashboard</a></li>
+        <li class="sidebar-nav-item"><a href="orders.html"><span class="nav-icon">📦</span> Master Orders</a></li>
+        <li class="sidebar-nav-item active"><a href="customers.html"><span class="nav-icon">👥</span> Customers</a></li>
+        <li class="sidebar-nav-item"><a href="members.html"><span class="nav-icon">👤</span> Members</a></li>
+        <li class="sidebar-nav-item"><a href="requests.html"><span class="nav-icon">✨</span> Member Requests</a></li>
+        <li class="sidebar-nav-item"><a href="locations.html"><span class="nav-icon">📍</span> Locations</a></li>
+        <li class="sidebar-nav-item"><a href="cake-settings.html"><span class="nav-icon">🍰</span> Cake Settings</a></li>
+        <li class="sidebar-nav-item"><a href="custom-fields.html"><span class="nav-icon">⚙️</span> Custom Fields</a></li>
+        <li class="sidebar-nav-item"><a href="payments.html"><span class="nav-icon">💳</span> Payment Tracking</a></li>
+        <li class="sidebar-nav-item"><a href="reports.html"><span class="nav-icon">📑</span> Reports & Excel</a></li>
+        <li class="sidebar-nav-item"><a href="activity-logs.html"><span class="nav-icon">📜</span> Activity Logs</a></li>
+        <li class="sidebar-nav-item"><a href="settings.html"><span class="nav-icon">🔧</span> System Settings</a></li>
+        <li class="sidebar-nav-item" style="margin-top: auto;"><a href="javascript:void(0)" onclick="Auth.logout()" style="color: #FFCDD2;"><span class="nav-icon">🚪</span> Logout</a></li>
+      </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="admin-main">
+      <header class="admin-topbar">
+        <div class="topbar-left">
+          <button class="sidebar-toggle-btn" onclick="toggleSidebar()">☰</button>
+          <h2 style="font-size: 1.25rem; margin: 0; color: var(--green-darkest);">Parish Customer Registry</h2>
+        </div>
+        <div class="topbar-right">
+          <button class="btn btn-outline btn-sm" onclick="toggleArchivedCustomers()" id="btn-toggle-archived-cust">
+            📦 View Archived Customers
+          </button>
+        </div>
+      </header>
+
+      <main class="admin-content">
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+          <div class="filter-item" style="flex: 2; min-width: 240px;">
+            <input type="text" id="cust-filter-search" class="form-control" placeholder="🔍 Search Customer by Name, Phone, Address..." oninput="debounceFilter()">
+          </div>
+
+          <div class="filter-item">
+            <select id="cust-filter-location" class="form-control" onchange="loadCustomers()">
+              <option value="all">All Locations</option>
+            </select>
+          </div>
+
+          <div>
+            <button class="btn btn-secondary btn-sm" onclick="resetCustFilters()">Clear</button>
+          </div>
+        </div>
+
+        <!-- Customer Table -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2 id="cust-list-title">All Customers</h2>
+              <span id="cust-count-badge" style="font-size: 0.85rem; color: var(--text-muted);">0 customers</span>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Customer ID</th>
+                  <th>Customer Name</th>
+                  <th>Phone Number</th>
+                  <th>Alternate Phone</th>
+                  <th>Location</th>
+                  <th>Address & Landmark</th>
+                  <th>Orders</th>
+                  <th>Registered</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="customers-tbody">
+                <tr>
+                  <td colspan="9" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                    Loading customer records...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Edit Customer Modal -->
+  <div id="customer-modal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 540px;">
+      <div class="modal-header">
+        <h3 id="modal-cust-title">Edit Customer</h3>
+        <button class="modal-close" onclick="closeCustomerModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="edit-cust-id">
+
+        <div class="form-group">
+          <label class="form-label">Customer Name <span class="required">*</span></label>
+          <input type="text" id="modal-cust-name" class="form-control" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Phone Number <span class="required">*</span></label>
+            <input type="tel" id="modal-cust-phone" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Alternate Phone</label>
+            <input type="tel" id="modal-cust-alt-phone" class="form-control">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Location / Ward</label>
+          <input type="text" id="modal-cust-location" class="form-control">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Address</label>
+          <input type="text" id="modal-cust-address" class="form-control">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Landmark</label>
+          <input type="text" id="modal-cust-landmark" class="form-control">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Admin Notes</label>
+          <textarea id="modal-cust-notes" class="form-control" rows="2"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeCustomerModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveCustomerUpdates()">Save Customer</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/ui.js"></script>
+
+  <script>
+    let custTimer = null;
+    let showingArchivedCust = false;
+
+    function toggleSidebar() {
+      document.getElementById("admin-sidebar").classList.toggle("open");
+      document.getElementById("sidebar-backdrop").classList.toggle("active");
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      if (!Auth.requireRole("admin")) return;
+      UI.checkSystemHealth();
+      await loadLocationsDropdown();
+      loadCustomers();
+    });
+
+    async function loadLocationsDropdown() {
+      try {
+        const res = await API.get("/api/locations");
+        if (res.success && Array.isArray(res.data)) {
+          const select = document.getElementById("cust-filter-location");
+          select.innerHTML = '<option value="all">All Locations</option>' +
+            res.data.map(l => `<option value="${l['Location Name']}">${l['Location Name']}</option>`).join("");
+        }
+      } catch (e) {}
+    }
+
+    function debounceFilter() {
+      clearTimeout(custTimer);
+      custTimer = setTimeout(loadCustomers, 300);
+    }
+
+    function resetCustFilters() {
+      document.getElementById("cust-filter-search").value = "";
+      document.getElementById("cust-filter-location").value = "all";
+      loadCustomers();
+    }
+
+    function toggleArchivedCustomers() {
+      showingArchivedCust = !showingArchivedCust;
+      const btn = document.getElementById("btn-toggle-archived-cust");
+      const title = document.getElementById("cust-list-title");
+      if (showingArchivedCust) {
+        btn.textContent = "👥 View Active Customers";
+        btn.className = "btn btn-primary btn-sm";
+        title.textContent = "Archived Customers";
+      } else {
+        btn.textContent = "📦 View Archived Customers";
+        btn.className = "btn btn-outline btn-sm";
+        title.textContent = "All Customers";
+      }
+      loadCustomers();
+    }
+
+    async function loadCustomers() {
+      const tbody = document.getElementById("customers-tbody");
+      const countBadge = document.getElementById("cust-count-badge");
+      const search = document.getElementById("cust-filter-search").value.trim();
+      const location = document.getElementById("cust-filter-location").value;
+
+      try {
+        const res = await API.get("/api/admin/customers", {
+          search,
+          location,
+          archived: showingArchivedCust ? "true" : "false"
+        });
+
+        if (res.success && Array.isArray(res.data)) {
+          const custs = res.data;
+          countBadge.textContent = `${custs.length} customer(s) found`;
+
+          if (custs.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 2rem;">No customers found.</td></tr>`;
+            return;
+          }
+
+          tbody.innerHTML = custs.map(c => `
+            <tr>
+              <td><strong>${c['Customer ID']}</strong></td>
+              <td><strong>${c['Customer Name']}</strong></td>
+              <td>${c['Phone Number']}</td>
+              <td>${c['Alternate Phone Number'] || '-'}</td>
+              <td>${c['Location'] || '-'}</td>
+              <td>
+                ${c['Address'] || '-'}<br>
+                ${c['Landmark'] ? `<small style="color: var(--text-muted);">Landmark: ${c['Landmark']}</small>` : ''}
+              </td>
+              <td><span class="badge badge-paid">${c.total_orders || 0} order(s)</span></td>
+              <td>${UI.formatDate(c['Created Date'])}</td>
+              <td>
+                <div class="action-btn-group">
+                  <button class="btn btn-outline btn-sm" onclick='openCustomerModal(${JSON.stringify(c)})' title="Edit">
+                    ✏️ Edit
+                  </button>
+                  <a href="orders.html?search=${encodeURIComponent(c['Customer Name'])}" class="btn btn-secondary btn-sm" title="View Orders">
+                    📦 Orders
+                  </a>
+                  <button class="btn btn-secondary btn-sm" onclick="archiveCustomer('${c['Customer ID']}', '${c['Archived Status']}')">
+                    ${c['Archived Status'] === 'Archived' ? '🔄' : '📁'}
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `).join("");
+        }
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: red;">Failed to load customers.</td></tr>`;
+      }
+    }
+
+    function openCustomerModal(cust) {
+      document.getElementById("edit-cust-id").value = cust["Customer ID"];
+      document.getElementById("modal-cust-name").value = cust["Customer Name"] || "";
+      document.getElementById("modal-cust-phone").value = cust["Phone Number"] || "";
+      document.getElementById("modal-cust-alt-phone").value = cust["Alternate Phone Number"] || "";
+      document.getElementById("modal-cust-location").value = cust["Location"] || "";
+      document.getElementById("modal-cust-address").value = cust["Address"] || "";
+      document.getElementById("modal-cust-landmark").value = cust["Landmark"] || "";
+      document.getElementById("modal-cust-notes").value = cust["Notes"] || "";
+      document.getElementById("customer-modal").classList.add("active");
+    }
+
+    function closeCustomerModal() {
+      document.getElementById("customer-modal").classList.remove("active");
+    }
+
+    async function saveCustomerUpdates() {
+      const cid = document.getElementById("edit-cust-id").value;
+      const payload = {
+        name: document.getElementById("modal-cust-name").value.trim(),
+        phone: document.getElementById("modal-cust-phone").value.trim(),
+        alt_phone: document.getElementById("modal-cust-alt-phone").value.trim(),
+        location: document.getElementById("modal-cust-location").value.trim(),
+        address: document.getElementById("modal-cust-address").value.trim(),
+        landmark: document.getElementById("modal-cust-landmark").value.trim(),
+        notes: document.getElementById("modal-cust-notes").value.trim()
+      };
+
+      if (!payload.name || !payload.phone) {
+        UI.showToast("Name and Phone Number are required.", "error");
+        return;
+      }
+
+      try {
+        const res = await API.put(`/api/admin/customers/${cid}`, payload);
+        if (res.success) {
+          UI.showToast("Customer updated successfully!", "success");
+          closeCustomerModal();
+          loadCustomers();
+        } else {
+          UI.showToast(res.error || "Failed to update.", "error");
+        }
+      } catch (e) {
+        UI.showToast("Error updating customer.", "error");
+      }
+    }
+
+    function archiveCustomer(cid, currentStatus) {
+      const isArchived = (currentStatus === "Archived");
+      const actionText = isArchived ? "restore" : "archive";
+      UI.confirm(
+        `${isArchived ? "Restore" : "Archive"} Customer?`,
+        `Are you sure you want to ${actionText} Customer <strong>${cid}</strong>? Their historical orders and payments will remain preserved.`,
+        async () => {
+          try {
+            const res = await API.post(`/api/admin/customers/${cid}/archive`, {});
+            if (res.success) {
+              UI.showToast(`Customer ${cid} ${actionText}d.`, "info");
+              loadCustomers();
+            }
+          } catch (e) {
+            UI.showToast("Failed action.", "error");
+          }
+        }
+      );
+    }
+  </script>
+</body>
+</html>

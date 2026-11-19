@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Custom Fields — Admin</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/admin.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎂</text></svg>">
+</head>
+<body>
+
+  <div class="admin-layout">
+    <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleSidebar()"></div>
+
+    <!-- Admin Sidebar -->
+    <aside class="admin-sidebar" id="admin-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-logo-icon" style="width: 36px; height: 36px; font-size: 1.4rem;">🎂</div>
+        <div class="sidebar-brand">
+          <h2>Cake Challenge</h2>
+          <span>Admin Portal &bull; Pancode</span>
+        </div>
+      </div>
+
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-item"><a href="dashboard.html"><span class="nav-icon">📊</span> Dashboard</a></li>
+        <li class="sidebar-nav-item"><a href="orders.html"><span class="nav-icon">📦</span> Master Orders</a></li>
+        <li class="sidebar-nav-item"><a href="customers.html"><span class="nav-icon">👥</span> Customers</a></li>
+        <li class="sidebar-nav-item"><a href="members.html"><span class="nav-icon">👤</span> Members</a></li>
+        <li class="sidebar-nav-item"><a href="requests.html"><span class="nav-icon">✨</span> Member Requests</a></li>
+        <li class="sidebar-nav-item"><a href="locations.html"><span class="nav-icon">📍</span> Locations</a></li>
+        <li class="sidebar-nav-item"><a href="cake-settings.html"><span class="nav-icon">🍰</span> Cake Settings</a></li>
+        <li class="sidebar-nav-item active"><a href="custom-fields.html"><span class="nav-icon">⚙️</span> Custom Fields</a></li>
+        <li class="sidebar-nav-item"><a href="payments.html"><span class="nav-icon">💳</span> Payment Tracking</a></li>
+        <li class="sidebar-nav-item"><a href="reports.html"><span class="nav-icon">📑</span> Reports & Excel</a></li>
+        <li class="sidebar-nav-item"><a href="activity-logs.html"><span class="nav-icon">📜</span> Activity Logs</a></li>
+        <li class="sidebar-nav-item"><a href="settings.html"><span class="nav-icon">🔧</span> System Settings</a></li>
+        <li class="sidebar-nav-item" style="margin-top: auto;"><a href="javascript:void(0)" onclick="Auth.logout()" style="color: #FFCDD2;"><span class="nav-icon">🚪</span> Logout</a></li>
+      </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="admin-main">
+      <header class="admin-topbar">
+        <div class="topbar-left">
+          <button class="sidebar-toggle-btn" onclick="toggleSidebar()">☰</button>
+          <h2 style="font-size: 1.25rem; margin: 0; color: var(--green-darkest);">Dynamic Campaign Order Fields</h2>
+        </div>
+        <div class="topbar-right">
+          <button class="btn btn-primary btn-sm" onclick="openAddCustomFieldModal()">
+            ➕ Add Custom Field
+          </button>
+        </div>
+      </header>
+
+      <main class="admin-content">
+
+        <!-- Custom Fields Table -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2>Order Form Fields</h2>
+              <span style="font-size: 0.85rem; color: var(--text-muted);">Active fields automatically render on member order entry forms</span>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Field ID</th>
+                  <th>Field Name</th>
+                  <th>Type</th>
+                  <th>Required</th>
+                  <th>Dropdown Options</th>
+                  <th>Display Order</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="custom-fields-tbody">
+                <tr>
+                  <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                    Loading custom fields...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Add / Edit Custom Field Modal -->
+  <div id="custom-field-modal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3 id="modal-field-title">Add Custom Field</h3>
+        <button class="modal-close" onclick="closeCustomFieldModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="edit-field-id">
+
+        <div class="form-group">
+          <label class="form-label">Field Name <span class="required">*</span></label>
+          <input type="text" id="modal-field-name" class="form-control" placeholder="e.g. Delivery Preference / Occasion" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Field Type</label>
+            <select id="modal-field-type" class="form-control" onchange="toggleDropdownOptionsGroup()">
+              <option value="Short Text">Short Text</option>
+              <option value="Long Text">Long Text</option>
+              <option value="Number">Number</option>
+              <option value="Dropdown">Dropdown</option>
+              <option value="Date">Date</option>
+              <option value="Yes/No">Yes/No</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Required Field?</label>
+            <select id="modal-field-required" class="form-control">
+              <option value="No">No (Optional)</option>
+              <option value="Yes">Yes (Mandatory)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group" id="group-field-options" style="display: none;">
+          <label class="form-label">Dropdown Options (Comma-Separated)</label>
+          <input type="text" id="modal-field-options" class="form-control" placeholder="e.g. Home Delivery, Church Hall, Ward Pickup">
+          <div class="form-hint">Separate options with commas.</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Display Order</label>
+          <input type="number" id="modal-field-order" class="form-control" value="1" min="1" max="99">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeCustomFieldModal()">Cancel</button>
+        <button class="btn btn-primary" id="btn-save-field" onclick="saveCustomField()">Save Field</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/ui.js"></script>
+
+  <script>
+    function toggleSidebar() {
+      document.getElementById("admin-sidebar").classList.toggle("open");
+      document.getElementById("sidebar-backdrop").classList.toggle("active");
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      if (!Auth.requireRole("admin")) return;
+      UI.checkSystemHealth();
+      loadCustomFields();
+    });
+
+    async function loadCustomFields() {
+      const tbody = document.getElementById("custom-fields-tbody");
+      try {
+        const res = await API.get("/api/admin/custom-fields");
+        if (res.success && Array.isArray(res.data)) {
+          const fields = res.data;
+          if (fields.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem;">No custom fields configured.</td></tr>`;
+            return;
+          }
+
+          tbody.innerHTML = fields.map(f => `
+            <tr>
+              <td><strong>${f['Field ID']}</strong></td>
+              <td><strong>${f['Field Name']}</strong></td>
+              <td><span style="background: var(--bg-muted); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.82rem; font-weight: 600;">${f['Field Type']}</span></td>
+              <td>${f['Required'] === 'Yes' ? '<span class="badge badge-rejected">Yes</span>' : '<span class="badge badge-partial">No</span>'}</td>
+              <td><small>${f['Dropdown Options'] || '-'}</small></td>
+              <td>${f['Display Order'] || '1'}</td>
+              <td>
+                <span class="badge ${f['Active Status'] === 'Active' ? 'badge-verified' : 'badge-rejected'}">
+                  ${f['Active Status'] || 'Active'}
+                </span>
+              </td>
+              <td>
+                <div class="action-btn-group">
+                  <button class="btn btn-outline btn-sm" onclick='openEditCustomFieldModal(${JSON.stringify(f)})' title="Edit">
+                    ✏️ Edit
+                  </button>
+                  <button class="btn btn-secondary btn-sm" onclick="toggleFieldStatus('${f['Field ID']}')" title="Toggle Active">
+                    ${f['Active Status'] === 'Active' ? '🛑' : '✅'}
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `).join("");
+        }
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: red;">Failed to load custom fields.</td></tr>`;
+      }
+    }
+
+    function toggleDropdownOptionsGroup() {
+      const type = document.getElementById("modal-field-type").value;
+      const group = document.getElementById("group-field-options");
+      group.style.display = (type === "Dropdown") ? "block" : "none";
+    }
+
+    function openAddCustomFieldModal() {
+      document.getElementById("edit-field-id").value = "";
+      document.getElementById("modal-field-title").textContent = "Add Custom Field";
+      document.getElementById("modal-field-name").value = "";
+      document.getElementById("modal-field-type").value = "Short Text";
+      document.getElementById("modal-field-required").value = "No";
+      document.getElementById("modal-field-options").value = "";
+      document.getElementById("modal-field-order").value = "1";
+      toggleDropdownOptionsGroup();
+      document.getElementById("custom-field-modal").classList.add("active");
+    }
+
+    function openEditCustomFieldModal(f) {
+      document.getElementById("edit-field-id").value = f["Field ID"];
+      document.getElementById("modal-field-title").textContent = `Edit Field: ${f["Field Name"]}`;
+      document.getElementById("modal-field-name").value = f["Field Name"] || "";
+      document.getElementById("modal-field-type").value = f["Field Type"] || "Short Text";
+      document.getElementById("modal-field-required").value = f["Required"] || "No";
+      document.getElementById("modal-field-options").value = f["Dropdown Options"] || "";
+      document.getElementById("modal-field-order").value = f["Display Order"] || "1";
+      toggleDropdownOptionsGroup();
+      document.getElementById("custom-field-modal").classList.add("active");
+    }
+
+    function closeCustomFieldModal() {
+      document.getElementById("custom-field-modal").classList.remove("active");
+    }
+
+    async function saveCustomField() {
+      const fid = document.getElementById("edit-field-id").value;
+      const name = document.getElementById("modal-field-name").value.trim();
+      const type = document.getElementById("modal-field-type").value;
+      const required = document.getElementById("modal-field-required").value;
+      const options = document.getElementById("modal-field-options").value.trim();
+      const order = document.getElementById("modal-field-order").value;
+
+      if (!name) {
+        UI.showToast("Field name is required.", "error");
+        return;
+      }
+
+      const btn = document.getElementById("btn-save-field");
+      btn.disabled = true;
+
+      try {
+        if (!fid) {
+          const res = await API.post("/api/admin/custom-fields", {
+            name, type, required, options, order
+          });
+          if (res.success) {
+            UI.showToast("Custom field created!", "success");
+            closeCustomFieldModal();
+            loadCustomFields();
+          } else {
+            UI.showToast(res.error || "Failed to create.", "error");
+          }
+        } else {
+          const res = await API.put(`/api/admin/custom-fields/${fid}`, {
+            name, type, required, options, order
+          });
+          if (res.success) {
+            UI.showToast("Custom field updated!", "success");
+            closeCustomFieldModal();
+            loadCustomFields();
+          } else {
+            UI.showToast(res.error || "Failed to update.", "error");
+          }
+        }
+      } catch (e) {
+        UI.showToast("Connection error.", "error");
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function toggleFieldStatus(fid) {
+      try {
+        const res = await API.post(`/api/admin/custom-fields/${fid}/toggle-status`, {});
+        if (res.success) {
+          UI.showToast(`Field status changed to ${res.new_status}.`, "info");
+          loadCustomFields();
+        }
+      } catch (e) {
+        UI.showToast("Error updating field status.", "error");
+      }
+    }
+  </script>
+</body>
+</html>

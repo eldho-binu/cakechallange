@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add New Cake Order — Christmas Cake Challenge</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎂</text></svg>">
+  <style>
+    .order-section-card {
+      background: #FFFFFF;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 1.75rem;
+      margin-bottom: 1.75rem;
+      box-shadow: var(--shadow-card);
+    }
+    .section-title-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--green-darkest);
+      margin-bottom: 1.25rem;
+    }
+    .section-num {
+      background: var(--green-primary);
+      color: #FFFFFF;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.95rem;
+    }
+    .cake-card-row {
+      background: #F8FAF7;
+      border: 2px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      position: relative;
+    }
+    .cake-card-row:hover {
+      border-color: var(--green-primary);
+    }
+    .remove-cake-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: #FFEBEE;
+      color: #C62828;
+      border: none;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .remove-cake-btn:hover { background: #FFCDD2; }
+    .autocomplete-list {
+      position: absolute;
+      top: 100%;
+      left: 0; right: 0;
+      background: #FFFFFF;
+      border: 2px solid var(--green-primary);
+      border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+      z-index: 99;
+      max-height: 220px;
+      overflow-y: auto;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+    }
+    .autocomplete-row {
+      padding: 0.85rem 1rem;
+      cursor: pointer;
+      border-bottom: 1px solid #EEEEEE;
+    }
+    .autocomplete-row:hover {
+      background: var(--green-surface);
+    }
+    .summary-bill-box {
+      background: linear-gradient(135deg, var(--green-surface) 0%, #DFF0E4 100%);
+      border: 2px solid var(--green-primary);
+      border-radius: var(--radius-md);
+      padding: 1.5rem;
+      margin-bottom: 1.75rem;
+    }
+    .bill-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.4rem 0;
+      font-size: 1.1rem;
+    }
+    .bill-row.total-line {
+      border-top: 2px dashed var(--green-primary);
+      margin-top: 0.5rem;
+      padding-top: 0.75rem;
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--green-darkest);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Site Header -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="dashboard.html" class="brand-wrapper">
+        <div class="brand-logo-icon">🎂</div>
+        <div class="brand-titles">
+          <h1>Christmas Cake Challenge</h1>
+          <span>Simple Order Entry</span>
+        </div>
+      </a>
+      <a href="dashboard.html" class="nav-link">← My Dashboard</a>
+    </div>
+  </header>
+
+  <!-- Main Order Entry Form -->
+  <main style="flex: 1; padding: 2rem 0;">
+    <div class="container" style="max-width: 760px;">
+      
+      <div style="margin-bottom: 1.5rem;">
+        <h1 style="font-size: 1.75rem; margin-bottom: 0.35rem;">Enter Customer Cake Order</h1>
+        <p style="color: var(--text-muted); font-size: 1.05rem;">
+          Fill in the 3 simple steps below. Tap <strong>Save Order</strong> when finished.
+        </p>
+      </div>
+
+      <form id="cake-order-form" onsubmit="handleOrderSubmit(event)">
+
+        <!-- ================================================================
+             SECTION 1: Customer Details
+             ================================================================ -->
+        <div class="order-section-card">
+          <div class="section-title-badge">
+            <span class="section-num">1</span>
+            <span>Customer Details</span>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group" style="position: relative;">
+              <label class="form-label" for="cust-phone">Mobile Phone Number <span class="required">*</span></label>
+              <input type="tel" id="cust-phone" class="form-control" placeholder="10-digit mobile number" required pattern="[0-9]{10}" autocomplete="off" oninput="searchExistingCustomer(this.value)">
+              <div class="form-hint">Type phone number to auto-fill previous customers.</div>
+              <div id="cust-autocomplete-results" class="autocomplete-list" style="display: none;"></div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="cust-name">Customer Full Name <span class="required">*</span></label>
+              <input type="text" id="cust-name" class="form-control" placeholder="e.g. Thomas Varghese" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="cust-location">Parish Ward / Location <span class="required">*</span></label>
+              <select id="cust-location" class="form-control" required>
+                <option value="">-- Choose Ward --</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="cust-address">Delivery Address / House Name</label>
+              <input type="text" id="cust-address" class="form-control" placeholder="House name, street name">
+            </div>
+          </div>
+        </div>
+
+        <!-- ================================================================
+             SECTION 2: Choose Cakes & Quantities
+             =============================================================== -->
+        <div class="order-section-card">
+          <div class="section-title-badge">
+            <span class="section-num">2</span>
+            <span>Choose Cakes & Quantities</span>
+          </div>
+
+          <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.25rem;">
+            Select cake varieties and weights. Use the <strong>+</strong> and <strong>-</strong> buttons to set quantities.
+          </p>
+
+          <div id="cake-cards-list">
+            <!-- Dynamic Cake Items Injected Here -->
+          </div>
+
+          <button type="button" class="btn btn-outline btn-block" onclick="addCakeRow()" style="margin-top: 0.5rem;">
+            ➕ Add Another Cake Variety
+          </button>
+        </div>
+
+        <!-- ================================================================
+             SECTION 3: Payment & Summary
+             ================================================================ -->
+        <div class="order-section-card">
+          <div class="section-title-badge">
+            <span class="section-num">3</span>
+            <span>Payment & Delivery Instructions</span>
+          </div>
+
+          <!-- Large Live Calculation Box -->
+          <div class="summary-bill-box">
+            <div class="bill-row">
+              <span>Total Cake Amount:</span>
+              <strong id="display-order-total" style="font-size: 1.35rem; color: var(--green-darkest);">₹0.00</strong>
+            </div>
+
+            <div class="bill-row">
+              <span>Advance Paid Today:</span>
+              <strong id="display-order-paid" style="font-size: 1.35rem; color: var(--status-paid);">₹0.00</strong>
+            </div>
+
+            <div class="bill-row total-line">
+              <span>Balance to Collect on Delivery:</span>
+              <span id="display-order-remaining" style="color: var(--red-primary);">₹0.00</span>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="pay-amount">Advance Amount Received Now (₹)</label>
+              <input type="number" id="pay-amount" class="form-control" placeholder="0.00" min="0" step="any" oninput="calculateBill()">
+              <div class="form-hint">Enter money collected now. Leave 0 if unpaid.</div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="pay-method">Payment Mode</label>
+              <select id="pay-method" class="form-control">
+                <option value="Cash">Cash 💵</option>
+                <option value="UPI / GPay">Google Pay / PhonePe / UPI 📱</option>
+                <option value="Bank Transfer">Bank Transfer 🏦</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="order-delivery-notes">Delivery Instructions / Remarks (Optional)</label>
+            <input type="text" id="order-delivery-notes" class="form-control" placeholder="e.g. Please deliver by Sunday evening, call before arrival">
+          </div>
+
+          <!-- Dynamic Custom Fields if active -->
+          <div id="custom-fields-wrapper" style="display: none; border-top: 1px solid var(--border-subtle); padding-top: 1rem; margin-top: 1rem;">
+            <div id="custom-fields-content"></div>
+          </div>
+
+        </div>
+
+        <!-- Big Friendly Submit Button -->
+        <div style="margin-top: 2rem; margin-bottom: 3rem;">
+          <button type="submit" class="btn btn-primary btn-block" id="btn-save-order" style="font-size: 1.3rem; padding: 1.1rem; border-radius: var(--radius-md);">
+            💾 SAVE CAKE ORDER
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+  </main>
+
+  <!-- Celebration Success Modal -->
+  <div id="order-success-modal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 480px; text-align: center;">
+      <div class="modal-header" style="justify-content: center; background: #E8F5E9;">
+        <h3 style="color: var(--green-darkest); font-size: 1.4rem;">🎉 Order Saved Successfully!</h3>
+      </div>
+      <div class="modal-body" style="padding: 2rem 1.5rem;">
+        <div style="font-size: 3.5rem; margin-bottom: 0.5rem;">🎂 ✨</div>
+        <p style="font-size: 1.1rem; color: var(--text-primary); margin-bottom: 0.5rem;">
+          The cake order for <strong id="success-cust-name"></strong> has been saved directly to the church database.
+        </p>
+        <div style="background: var(--green-surface); padding: 0.85rem; border-radius: var(--radius-sm); margin: 1.25rem 0; font-size: 1.1rem;">
+          Order ID: <strong id="success-order-id" style="color: var(--green-darkest);"></strong><br>
+          Total: <strong id="success-total" style="color: var(--green-darkest);"></strong> &bull; 
+          Remaining: <strong id="success-remaining" style="color: var(--red-primary);"></strong>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+          <button type="button" class="btn btn-primary" onclick="window.location.reload()">
+            ➕ Enter Another Order
+          </button>
+          <a href="my-orders.html" class="btn btn-secondary">
+            📦 View My Orders
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/ui.js"></script>
+
+  <script>
+    let availableCakes = [];
+    let cakeRowCounter = 0;
+    let searchDebounce = null;
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      if (!Auth.requireRole("member")) return;
+
+      loadWards();
+      await loadCakesCatalog();
+      loadCustomFields();
+      addCakeRow(); // Start with first cake item
+    });
+
+    async function loadWards() {
+      const select = document.getElementById("cust-location");
+      try {
+        const res = await API.get("/api/locations");
+        if (res.success && Array.isArray(res.data)) {
+          select.innerHTML = '<option value="">-- Choose Ward --</option>' +
+            res.data.map(l => `<option value="${l['Location Name']}">${l['Location Name']}</option>`).join("");
+        }
+      } catch (e) {}
+    }
+
+    async function loadCakesCatalog() {
+      try {
+        const res = await API.get("/api/cakes");
+        if (res.success && Array.isArray(res.data)) {
+          availableCakes = res.data;
+        }
+      } catch (e) {}
+    }
+
+    async function loadCustomFields() {
+      const wrapper = document.getElementById("custom-fields-wrapper");
+      const content = document.getElementById("custom-fields-content");
+      try {
+        const res = await API.get("/api/custom-fields");
+        if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+          wrapper.style.display = "block";
+          content.innerHTML = res.data.map(f => {
+            const fid = f["Field ID"];
+            const req = f["Required"] === "Yes" ? '<span class="required">*</span>' : '';
+            const isReq = f["Required"] === "Yes" ? 'required' : '';
+            return `
+              <div class="form-group">
+                <label class="form-label">${f["Field Name"]} ${req}</label>
+                <input type="text" class="form-control cf-input" data-fid="${fid}" ${isReq} placeholder="${f['Field Name']}">
+              </div>
+            `;
+          }).join("");
+        }
+      } catch (e) {}
+    }
+
+    // Phone search for returning customers
+    function searchExistingCustomer(phoneVal) {
+      clearTimeout(searchDebounce);
+      const resultsBox = document.getElementById("cust-autocomplete-results");
+      const clean = phoneVal.trim();
+
+      if (clean.length < 3) {
+        resultsBox.style.display = "none";
+        return;
+      }
+
+      searchDebounce = setTimeout(async () => {
+        try {
+          const res = await API.get("/api/customers/search", { q: clean });
+          if (res.success && res.data && res.data.length > 0) {
+            resultsBox.innerHTML = res.data.map(c => `
+              <div class="autocomplete-row" onclick='selectCustomer(${JSON.stringify(c)})'>
+                <strong>${c["Customer Name"]}</strong> (${c["Phone Number"]})<br>
+                <small style="color: var(--text-muted);">${c["Location"] || ''} &bull; ${c["Address"] || ''}</small>
+              </div>
+            `).join("");
+            resultsBox.style.display = "block";
+          } else {
+            resultsBox.style.display = "none";
+          }
+        } catch (e) {
+          resultsBox.style.display = "none";
+        }
+      }, 300);
+    }
+
+    function selectCustomer(c) {
+      document.getElementById("cust-name").value = c["Customer Name"] || "";
+      document.getElementById("cust-phone").value = c["Phone Number"] || "";
+      document.getElementById("cust-location").value = c["Location"] || "";
+      document.getElementById("cust-address").value = c["Address"] || "";
+      document.getElementById("cust-autocomplete-results").style.display = "none";
+      UI.showToast(`Customer details filled for ${c["Customer Name"]}!`, "success");
+    }
+
+    // Dynamic Cake Items Logic
+    function addCakeRow() {
+      cakeRowCounter++;
+      const list = document.getElementById("cake-cards-list");
+      const rowId = `cake-item-${cakeRowCounter}`;
+
+      const card = document.createElement("div");
+      card.className = "cake-card-row";
+      card.id = rowId;
+
+      card.innerHTML = `
+        <button type="button" class="remove-cake-btn" onclick="removeCakeRow('${rowId}')" title="Remove">&times;</button>
+        
+        <div class="form-group" style="margin-bottom: 0.85rem; padding-right: 35px;">
+          <label class="form-label" style="font-size: 0.95rem;">🎂 Select Cake Variety</label>
+          <select class="form-control cake-select" onchange="onCakeChange('${rowId}')" required>
+            <option value="">-- Choose Cake --</option>
+            ${availableCakes.map(c => `<option value="${c.cake_id}">${c.cake_name}</option>`).join("")}
+          </select>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-top: 0.5rem;">
+          <div>
+            <label class="form-label" style="font-size: 0.9rem; margin-bottom: 0.35rem;">Weight</label>
+            <div class="weight-pills" id="${rowId}-weights">
+              <span style="color: var(--text-muted); font-size: 0.85rem;">Choose a cake first</span>
+            </div>
+          </div>
+
+          <div>
+            <label class="form-label" style="font-size: 0.9rem; margin-bottom: 0.35rem;">Quantity</label>
+            <div class="quantity-stepper">
+              <button type="button" class="stepper-btn" onclick="adjustQty('${rowId}', -1)">-</button>
+              <input type="text" class="stepper-val" value="1" readonly>
+              <button type="button" class="stepper-btn" onclick="adjustQty('${rowId}', 1)">+</button>
+            </div>
+          </div>
+
+          <div style="text-align: right; margin-left: auto;">
+            <label class="form-label" style="font-size: 0.9rem; margin-bottom: 0.35rem;">Subtotal</label>
+            <div class="row-subtotal" style="font-size: 1.35rem; font-weight: 800; color: var(--green-darkest);">
+              ₹0.00
+            </div>
+            <input type="hidden" class="row-unit-price" value="0">
+            <input type="hidden" class="row-selected-weight" value="">
+          </div>
+        </div>
+      `;
+
+      list.appendChild(card);
+    }
+
+    function removeCakeRow(rowId) {
+      const list = document.getElementById("cake-cards-list");
+      if (list.children.length <= 1) {
+        UI.showToast("At least one cake must be in the order.", "warning");
+        return;
+      }
+      document.getElementById(rowId).remove();
+      calculateBill();
+    }
+
+    function onCakeChange(rowId) {
+      const card = document.getElementById(rowId);
+      const cakeSelect = card.querySelector(".cake-select");
+      const weightsContainer = document.getElementById(`${rowId}-weights`);
+      const selectedId = cakeSelect.value;
+
+      const cake = availableCakes.find(c => c.cake_id === selectedId);
+      if (cake && Array.isArray(cake.available_weights)) {
+        weightsContainer.innerHTML = cake.available_weights.map((w, idx) => `
+          <button type="button" class="weight-pill ${idx === 0 ? 'selected' : ''}" onclick="selectWeight('${rowId}', '${w}', this)">
+            ${w} (${UI.formatINR(cake.prices[w] || 0)})
+          </button>
+        `).join("");
+
+        // Default select first weight
+        const firstWeight = cake.available_weights[0];
+        card.querySelector(".row-selected-weight").value = firstWeight;
+        card.querySelector(".row-unit-price").value = cake.prices[firstWeight] || 0;
+      } else {
+        weightsContainer.innerHTML = '<span style="color: var(--text-muted); font-size: 0.85rem;">Choose a cake first</span>';
+        card.querySelector(".row-selected-weight").value = "";
+        card.querySelector(".row-unit-price").value = 0;
+      }
+
+      calculateRowSubtotal(rowId);
+    }
+
+    function selectWeight(rowId, weight, pillBtn) {
+      const card = document.getElementById(rowId);
+      const weightsContainer = document.getElementById(`${rowId}-weights`);
+      weightsContainer.querySelectorAll(".weight-pill").forEach(p => p.classList.remove("selected"));
+      pillBtn.classList.add("selected");
+
+      card.querySelector(".row-selected-weight").value = weight;
+      const cakeId = card.querySelector(".cake-select").value;
+      const cake = availableCakes.find(c => c.cake_id === cakeId);
+      if (cake && cake.prices) {
+        card.querySelector(".row-unit-price").value = cake.prices[weight] || 0;
+      }
+      calculateRowSubtotal(rowId);
+    }
+
+    function adjustQty(rowId, delta) {
+      const card = document.getElementById(rowId);
+      const valInput = card.querySelector(".stepper-val");
+      let qty = parseInt(valInput.value) || 1;
+      qty = Math.max(1, qty + delta);
+      valInput.value = qty;
+      calculateRowSubtotal(rowId);
+    }
+
+    function calculateRowSubtotal(rowId) {
+      const card = document.getElementById(rowId);
+      const qty = parseInt(card.querySelector(".stepper-val").value) || 1;
+      const unit = parseFloat(card.querySelector(".row-unit-price").value) || 0;
+      const subtotal = qty * unit;
+      card.querySelector(".row-subtotal").textContent = UI.formatINR(subtotal);
+      calculateBill();
+    }
+
+    function calculateBill() {
+      let orderTotal = 0;
+      document.querySelectorAll(".cake-card-row").forEach(card => {
+        const qty = parseInt(card.querySelector(".stepper-val").value) || 1;
+        const unit = parseFloat(card.querySelector(".row-unit-price").value) || 0;
+        orderTotal += (qty * unit);
+      });
+
+      const payAmountInput = document.getElementById("pay-amount");
+      const paid = parseFloat(payAmountInput.value) || 0;
+      const remaining = Math.max(0, orderTotal - paid);
+
+      document.getElementById("display-order-total").textContent = UI.formatINR(orderTotal);
+      document.getElementById("display-order-paid").textContent = UI.formatINR(paid);
+      document.getElementById("display-order-remaining").textContent = UI.formatINR(remaining);
+    }
+
+    // Submit Order
+    async function handleOrderSubmit(e) {
+      e.preventDefault();
+
+      const customer = {
+        name: document.getElementById("cust-name").value.trim(),
+        phone: document.getElementById("cust-phone").value.trim(),
+        location: document.getElementById("cust-location").value,
+        address: document.getElementById("cust-address").value.trim()
+      };
+
+      if (!customer.name || !customer.phone) {
+        UI.showToast("Please enter Customer Name and Phone Number.", "error");
+        return;
+      }
+      if (!customer.location) {
+        UI.showToast("Please select the Ward / Location.", "error");
+        return;
+      }
+
+      const items = [];
+      let missingItem = false;
+      document.querySelectorAll(".cake-card-row").forEach(card => {
+        const cakeId = card.querySelector(".cake-select").value;
+        const weight = card.querySelector(".row-selected-weight").value;
+        const qty = parseInt(card.querySelector(".stepper-val").value) || 1;
+        if (!cakeId || !weight) {
+          missingItem = true;
+          return;
+        }
+        items.push({ cake_id: cakeId, weight: weight, quantity: qty });
+      });
+
+      if (missingItem || items.length === 0) {
+        UI.showToast("Please pick a cake variety and weight for all items.", "error");
+        return;
+      }
+
+      const advancePaid = parseFloat(document.getElementById("pay-amount").value) || 0;
+      const payment = {
+        amount: advancePaid,
+        method: document.getElementById("pay-method").value
+      };
+
+      const customFields = {};
+      document.querySelectorAll(".cf-input").forEach(inp => {
+        customFields[inp.dataset.fid] = inp.value.trim();
+      });
+
+      const saveBtn = document.getElementById("btn-save-order");
+      saveBtn.disabled = true;
+      saveBtn.textContent = "Writing to Google Sheets...";
+
+      try {
+        const res = await API.post("/api/orders", {
+          customer,
+          items,
+          payment,
+          custom_fields: customFields,
+          delivery_notes: document.getElementById("order-delivery-notes").value.trim()
+        });
+
+        if (res.success && res.data) {
+          document.getElementById("success-cust-name").textContent = customer.name;
+          document.getElementById("success-order-id").textContent = res.data.order_id;
+          document.getElementById("success-total").textContent = UI.formatINR(res.data.total_amount);
+          document.getElementById("success-remaining").textContent = UI.formatINR(res.data.remaining_amount);
+          document.getElementById("order-success-modal").classList.add("active");
+        } else {
+          UI.showToast(res.error || "Failed to save order.", "error");
+          saveBtn.disabled = false;
+          saveBtn.textContent = "💾 SAVE CAKE ORDER";
+        }
+      } catch (err) {
+        UI.showToast("Connection error while saving order.", "error");
+        saveBtn.disabled = false;
+        saveBtn.textContent = "💾 SAVE CAKE ORDER";
+      }
+    }
+  </script>
+</body>
+</html>

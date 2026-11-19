@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Member Requests — Admin</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/admin.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎂</text></svg>">
+</head>
+<body>
+
+  <div class="admin-layout">
+    <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleSidebar()"></div>
+
+    <!-- Admin Sidebar -->
+    <aside class="admin-sidebar" id="admin-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-logo-icon" style="width: 36px; height: 36px; font-size: 1.4rem;">🎂</div>
+        <div class="sidebar-brand">
+          <h2>Cake Challenge</h2>
+          <span>Admin Portal &bull; Pancode</span>
+        </div>
+      </div>
+
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-item"><a href="dashboard.html"><span class="nav-icon">📊</span> Dashboard</a></li>
+        <li class="sidebar-nav-item"><a href="orders.html"><span class="nav-icon">📦</span> Master Orders</a></li>
+        <li class="sidebar-nav-item"><a href="customers.html"><span class="nav-icon">👥</span> Customers</a></li>
+        <li class="sidebar-nav-item"><a href="members.html"><span class="nav-icon">👤</span> Members</a></li>
+        <li class="sidebar-nav-item active"><a href="requests.html"><span class="nav-icon">✨</span> Member Requests</a></li>
+        <li class="sidebar-nav-item"><a href="locations.html"><span class="nav-icon">📍</span> Locations</a></li>
+        <li class="sidebar-nav-item"><a href="cake-settings.html"><span class="nav-icon">🍰</span> Cake Settings</a></li>
+        <li class="sidebar-nav-item"><a href="custom-fields.html"><span class="nav-icon">⚙️</span> Custom Fields</a></li>
+        <li class="sidebar-nav-item"><a href="payments.html"><span class="nav-icon">💳</span> Payment Tracking</a></li>
+        <li class="sidebar-nav-item"><a href="reports.html"><span class="nav-icon">📑</span> Reports & Excel</a></li>
+        <li class="sidebar-nav-item"><a href="activity-logs.html"><span class="nav-icon">📜</span> Activity Logs</a></li>
+        <li class="sidebar-nav-item"><a href="settings.html"><span class="nav-icon">🔧</span> System Settings</a></li>
+        <li class="sidebar-nav-item" style="margin-top: auto;"><a href="javascript:void(0)" onclick="Auth.logout()" style="color: #FFCDD2;"><span class="nav-icon">🚪</span> Logout</a></li>
+      </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="admin-main">
+      <header class="admin-topbar">
+        <div class="topbar-left">
+          <button class="sidebar-toggle-btn" onclick="toggleSidebar()">☰</button>
+          <h2 style="font-size: 1.25rem; margin: 0; color: var(--green-darkest);">New Member Applications</h2>
+        </div>
+        <div class="topbar-right">
+          <a href="../login.html?tab=request" target="_blank" class="btn btn-outline btn-sm">
+            🔗 Public Request Form
+          </a>
+        </div>
+      </header>
+
+      <main class="admin-content">
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+          <div class="filter-item" style="flex: 2; min-width: 240px;">
+            <input type="text" id="req-filter-search" class="form-control" placeholder="🔍 Search Applicant by Name, Phone, Location..." oninput="debounceFilter()">
+          </div>
+
+          <div class="filter-item">
+            <select id="req-filter-status" class="form-control" onchange="loadRequests()">
+              <option value="all">All Statuses</option>
+              <option value="Pending" selected>Pending Review</option>
+              <option value="Contacted">Contacted</option>
+              <option value="Approved">Approved</option>
+              <option value="Rejected">Rejected</option>
+            </select>
+          </div>
+
+          <div>
+            <button class="btn btn-secondary btn-sm" onclick="resetReqFilters()">Clear</button>
+          </div>
+        </div>
+
+        <!-- Requests Table -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2>Applications List</h2>
+              <span id="req-count-badge" style="font-size: 0.85rem; color: var(--text-muted);">0 applications</span>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Request ID</th>
+                  <th>Applicant Name</th>
+                  <th>Phone Number</th>
+                  <th>Location</th>
+                  <th>Message / Notes</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                  <th>Admin Notes</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="requests-tbody">
+                <tr>
+                  <td colspan="9" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                    Loading applications...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Approve Request Modal -->
+  <div id="approve-request-modal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3>Approve Member Application</h3>
+        <button class="modal-close" onclick="closeApproveModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="approve-req-id">
+
+        <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+          Approving will create an active account for <strong id="approve-applicant-name"></strong> in the Church Members registry.
+        </p>
+
+        <div class="form-group">
+          <label class="form-label">Assign Unique Member Code</label>
+          <input type="text" id="approve-member-code" class="form-control" placeholder="Leave blank to auto-generate (e.g. MC-XXXX)">
+          <div class="form-hint">Stored securely as PBKDF2 hash.</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Member Email (Optional)</label>
+          <input type="email" id="approve-member-email" class="form-control" placeholder="applicant@email.com">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Admin Approval Notes</label>
+          <input type="text" id="approve-notes" class="form-control" placeholder="e.g. Verified with youth secretary">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeApproveModal()">Cancel</button>
+        <button class="btn btn-primary" id="btn-confirm-approve" onclick="confirmApproveRequest()">
+          ✓ Approve & Create Member
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Code Display Modal -->
+  <div id="approved-code-modal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 440px; text-align: center;">
+      <div class="modal-header" style="justify-content: center;">
+        <h3 style="color: var(--green-darkest);">🎉 Member Account Created!</h3>
+      </div>
+      <div class="modal-body" style="padding: 2rem 1.5rem;">
+        <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+          Please share the following credentials with <strong id="approved-name-label"></strong>:
+        </p>
+
+        <div style="background: var(--gold-light); border: 2px dashed var(--gold-primary); border-radius: var(--radius-sm); padding: 1.25rem; margin-bottom: 1rem;">
+          <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">MEMBER NAME: <strong id="approved-name-box" style="color: var(--green-darkest);"></strong></div>
+          <div style="font-size: 1.8rem; font-weight: 700; color: var(--green-darkest); letter-spacing: 2px; margin-top: 0.5rem;" id="approved-code-box">
+            MC-XXXXXX
+          </div>
+        </div>
+
+        <p style="font-size: 0.82rem; color: var(--text-muted);">
+          The member can now log in at the member portal using their name and this unique code.
+        </p>
+      </div>
+      <div class="modal-footer" style="justify-content: center;">
+        <button class="btn btn-primary" onclick="document.getElementById('approved-code-modal').classList.remove('active')">
+          Done
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/ui.js"></script>
+
+  <script>
+    let reqTimer = null;
+
+    function toggleSidebar() {
+      document.getElementById("admin-sidebar").classList.toggle("open");
+      document.getElementById("sidebar-backdrop").classList.toggle("active");
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      if (!Auth.requireRole("admin")) return;
+      UI.checkSystemHealth();
+      loadRequests();
+    });
+
+    function debounceFilter() {
+      clearTimeout(reqTimer);
+      reqTimer = setTimeout(loadRequests, 300);
+    }
+
+    function resetReqFilters() {
+      document.getElementById("req-filter-search").value = "";
+      document.getElementById("req-filter-status").value = "all";
+      loadRequests();
+    }
+
+    async function loadRequests() {
+      const tbody = document.getElementById("requests-tbody");
+      const countBadge = document.getElementById("req-count-badge");
+      const search = document.getElementById("req-filter-search").value.trim();
+      const status = document.getElementById("req-filter-status").value;
+
+      try {
+        const res = await API.get("/api/admin/member-requests", { search, status });
+        if (res.success && Array.isArray(res.data)) {
+          const reqs = res.data;
+          countBadge.textContent = `${reqs.length} application(s)`;
+
+          if (reqs.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 2rem;">No applications found.</td></tr>`;
+            return;
+          }
+
+          tbody.innerHTML = reqs.map(r => `
+            <tr>
+              <td><strong>${r['Request ID']}</strong></td>
+              <td><strong>${r['Applicant Name']}</strong></td>
+              <td>${r['Phone Number']}</td>
+              <td>${r['Location'] || '-'}</td>
+              <td><span style="font-size: 0.85rem; color: var(--text-muted);">${r['Optional Message'] || '-'}</span></td>
+              <td>${UI.formatDate(r['Request Date'])}</td>
+              <td>
+                <span class="badge ${getStatusBadgeClass(r['Request Status'])}">
+                  ${r['Request Status'] || 'Pending'}
+                </span>
+              </td>
+              <td><small>${r['Admin Notes'] || '-'}</small></td>
+              <td>
+                <div class="action-btn-group">
+                  ${r['Request Status'] === 'Pending' || r['Request Status'] === 'Contacted' ? `
+                    <button class="btn btn-forest btn-sm" onclick='openApproveModal(${JSON.stringify(r)})' title="Approve">
+                      ✓ Approve
+                    </button>
+                    <button class="btn btn-outline btn-sm" onclick="markContacted('${r['Request ID']}')" title="Mark Contacted">
+                      📞
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="rejectRequest('${r['Request ID']}')" title="Reject">
+                      ✗
+                    </button>
+                  ` : `
+                    <span style="font-size: 0.8rem; color: var(--text-muted);">Processed</span>
+                  `}
+                </div>
+              </td>
+            </tr>
+          `).join("");
+        }
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: red;">Failed to load applications.</td></tr>`;
+      }
+    }
+
+    function getStatusBadgeClass(status) {
+      const s = String(status || "").toLowerCase();
+      if (s === "approved") return "badge-verified";
+      if (s === "rejected") return "badge-rejected";
+      if (s === "contacted") return "badge-partial";
+      return "badge-pending";
+    }
+
+    function openApproveModal(r) {
+      document.getElementById("approve-req-id").value = r["Request ID"];
+      document.getElementById("approve-applicant-name").textContent = r["Applicant Name"];
+      document.getElementById("approve-member-code").value = "";
+      document.getElementById("approve-member-email").value = "";
+      document.getElementById("approve-notes").value = "";
+      document.getElementById("approve-request-modal").classList.add("active");
+    }
+
+    function closeApproveModal() {
+      document.getElementById("approve-request-modal").classList.remove("active");
+    }
+
+    async function confirmApproveRequest() {
+      const reqId = document.getElementById("approve-req-id").value;
+      const memberCode = document.getElementById("approve-member-code").value.trim();
+      const email = document.getElementById("approve-member-email").value.trim();
+      const notes = document.getElementById("approve-notes").value.trim();
+      const btn = document.getElementById("btn-confirm-approve");
+
+      btn.disabled = true;
+      btn.textContent = "Approving...";
+
+      try {
+        const res = await API.post(`/api/admin/member-requests/${reqId}/approve`, {
+          member_code: memberCode,
+          email,
+          notes
+        });
+
+        if (res.success) {
+          closeApproveModal();
+          loadRequests();
+
+          // Show generated credentials modal
+          document.getElementById("approved-name-label").textContent = res.member_name;
+          document.getElementById("approved-name-box").textContent = res.member_name;
+          document.getElementById("approved-code-box").textContent = res.generated_code;
+          document.getElementById("approved-code-modal").classList.add("active");
+        } else {
+          UI.showToast(res.error || "Failed to approve request.", "error");
+        }
+      } catch (e) {
+        UI.showToast("Connection error.", "error");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "✓ Approve & Create Member";
+      }
+    }
+
+    async function markContacted(reqId) {
+      try {
+        const res = await API.put(`/api/admin/member-requests/${reqId}/status`, {
+          status: "Contacted",
+          notes: "Applicant contacted by coordinator."
+        });
+        if (res.success) {
+          UI.showToast("Request marked as Contacted.", "info");
+          loadRequests();
+        }
+      } catch (e) {
+        UI.showToast("Failed to update status.", "error");
+      }
+    }
+
+    function rejectRequest(reqId) {
+      UI.confirm(
+        "Reject Application?",
+        `Are you sure you want to reject Request <strong>${reqId}</strong>?`,
+        async () => {
+          try {
+            const res = await API.put(`/api/admin/member-requests/${reqId}/status`, {
+              status: "Rejected",
+              notes: "Application rejected."
+            });
+            if (res.success) {
+              UI.showToast("Request marked as Rejected.", "warning");
+              loadRequests();
+            }
+          } catch (e) {
+            UI.showToast("Error updating request.", "error");
+          }
+        }
+      );
+    }
+  </script>
+</body>
+</html>

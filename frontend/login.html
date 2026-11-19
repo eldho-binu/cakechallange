@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login & Access — Christmas Cake Challenge</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎂</text></svg>">
+  <style>
+    .login-container {
+      max-width: 460px;
+      margin: 2.5rem auto;
+      padding: 0 1rem;
+    }
+    .segmented-control {
+      display: flex;
+      background: #EAF0EC;
+      padding: 5px;
+      border-radius: var(--radius-sm);
+      margin-bottom: 1.5rem;
+      gap: 5px;
+    }
+    .seg-btn {
+      flex: 1;
+      padding: 0.75rem 0.5rem;
+      border: none;
+      background: none;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .seg-btn.active {
+      background: #FFFFFF;
+      color: var(--green-darkest);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+  </style>
+</head>
+<body>
+
+  <!-- Site Header -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="index.html" class="brand-wrapper">
+        <div class="brand-logo-icon">🎂</div>
+        <div class="brand-titles">
+          <h1>Christmas Cake Challenge</h1>
+          <span>Church Youth Group, Pancode</span>
+        </div>
+      </a>
+      <a href="index.html" class="nav-link">← Home</a>
+    </div>
+  </header>
+
+  <main style="flex: 1; display: flex; align-items: center; padding: 2rem 0;">
+    <div class="login-container">
+      
+      <div class="card" style="border-top: 6px solid var(--green-primary); padding: 2rem 1.75rem;">
+        
+        <!-- Segmented Tab Switcher -->
+        <div class="segmented-control">
+          <button type="button" class="seg-btn active" id="tab-btn-member" onclick="switchLoginTab('member')">
+            👤 Member
+          </button>
+          <button type="button" class="seg-btn" id="tab-btn-request" onclick="switchLoginTab('request')">
+            ✨ Register
+          </button>
+          <button type="button" class="seg-btn" id="tab-btn-admin" onclick="switchLoginTab('admin')">
+            🛡️ Admin
+          </button>
+        </div>
+
+        <!-- 1. Member Login Tab -->
+        <div class="tab-pane active" id="pane-member">
+          <div style="text-align: center; margin-bottom: 1.5rem;">
+            <div style="font-size: 2.2rem; margin-bottom: 0.25rem;">🎄 🎂</div>
+            <h2 style="font-size: 1.45rem; margin-bottom: 0.35rem;">Youth Member Login</h2>
+            <p style="font-size: 0.95rem; color: var(--text-muted);">
+              Enter your Name and Member Code to access your orders.
+            </p>
+          </div>
+
+          <form onsubmit="handleMemberLogin(event)">
+            <div class="form-group">
+              <label class="form-label" for="member-name">Your Full Name <span class="required">*</span></label>
+              <input type="text" id="member-name" class="form-control" placeholder="e.g. Robin Thomas" required autocomplete="name">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="member-code">Your Member Code <span class="required">*</span></label>
+              <input type="password" id="member-code" class="form-control" placeholder="e.g. MC-XXXXXX" required autocomplete="current-password">
+              <div class="form-hint">Code provided by the church coordinator.</div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block" id="btn-login-member" style="margin-top: 1.25rem;">
+              Log In to My Dashboard →
+            </button>
+          </form>
+
+          <div style="text-align: center; margin-top: 1.75rem; padding-top: 1.25rem; border-top: 1px solid var(--border-subtle);">
+            <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+              Don't have a member code yet?
+            </p>
+            <button type="button" class="btn btn-outline btn-sm" onclick="switchLoginTab('request')">
+              ✨ Tap Here to Request Access
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. Request Access Tab -->
+        <div class="tab-pane" id="pane-request">
+          <div style="text-align: center; margin-bottom: 1.5rem;">
+            <h2 style="font-size: 1.4rem; margin-bottom: 0.35rem;">New Member Request</h2>
+            <p style="font-size: 0.95rem; color: var(--text-muted);">
+              Fill in your details. We will review and provide your member code.
+            </p>
+          </div>
+
+          <form onsubmit="handleRequestAccess(event)">
+            <div class="form-group">
+              <label class="form-label" for="req-name">Your Name <span class="required">*</span></label>
+              <input type="text" id="req-name" class="form-control" placeholder="Full name" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="req-phone">Mobile Phone Number <span class="required">*</span></label>
+              <input type="tel" id="req-phone" class="form-control" placeholder="10-digit number" required pattern="[0-9]{10}">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="req-location">Parish Ward / Location</label>
+              <select id="req-location" class="form-control">
+                <option value="Pancode Central">Pancode Central</option>
+                <option value="North Ward">North Ward</option>
+                <option value="South Ward">South Ward</option>
+                <option value="East Ward">East Ward</option>
+                <option value="West Ward">West Ward</option>
+                <option value="Other">Other Ward</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="req-message">Optional Message</label>
+              <input type="text" id="req-message" class="form-control" placeholder="e.g. Senior youth member">
+            </div>
+
+            <button type="submit" class="btn btn-forest btn-block" id="btn-submit-req" style="margin-top: 1.25rem;">
+              Submit Access Request
+            </button>
+          </form>
+
+          <div style="text-align: center; margin-top: 1.5rem;">
+            <a href="javascript:void(0)" onclick="switchLoginTab('member')">← Back to Member Login</a>
+          </div>
+        </div>
+
+        <!-- 3. Admin Portal Tab -->
+        <div class="tab-pane" id="pane-admin">
+          <div style="text-align: center; margin-bottom: 1.5rem;">
+            <div style="font-size: 2.2rem; margin-bottom: 0.25rem;">🛡️</div>
+            <h2 style="font-size: 1.4rem; margin-bottom: 0.35rem;">Administrator Portal</h2>
+            <p style="font-size: 0.95rem; color: var(--text-muted);">
+              For Church Coordinators and Admins.
+            </p>
+          </div>
+
+          <form onsubmit="handleAdminLogin(event)">
+            <div class="form-group">
+              <label class="form-label" for="admin-email">Admin Email <span class="required">*</span></label>
+              <input type="email" id="admin-email" class="form-control" value="margregoriousyouthpancode123@gmail.com" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="admin-password">Password <span class="required">*</span></label>
+              <input type="password" id="admin-password" class="form-control" placeholder="••••••••" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block" id="btn-login-admin" style="margin-top: 1.25rem;">
+              Enter Admin Portal →
+            </button>
+          </form>
+
+          <div style="text-align: center; margin-top: 1.5rem;">
+            <a href="javascript:void(0)" onclick="switchLoginTab('member')">← Back to Member Login</a>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Google Sheets Connection Status Indicator -->
+      <div style="text-align: center; margin-top: 1rem;">
+        <span id="system-status-pill" class="system-pill pill-warning">
+          <span class="status-indicator warning"></span> Checking Google Sheets...
+        </span>
+      </div>
+
+    </div>
+  </main>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/ui.js"></script>
+
+  <script>
+    function switchLoginTab(tab) {
+      document.querySelectorAll(".seg-btn").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
+
+      const btn = document.getElementById(`tab-btn-${tab}`);
+      const pane = document.getElementById(`pane-${tab}`);
+      if (btn && pane) {
+        btn.classList.add("active");
+        pane.classList.add("active");
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      UI.checkSystemHealth();
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab");
+      if (tabParam === "admin" || tabParam === "request" || tabParam === "member") {
+        switchLoginTab(tabParam);
+      }
+    });
+
+    async function handleMemberLogin(e) {
+      e.preventDefault();
+      const name = document.getElementById("member-name").value.trim();
+      const code = document.getElementById("member-code").value.trim();
+      const btn = document.getElementById("btn-login-member");
+
+      if (!name || !code) {
+        UI.showToast("Please enter both Name and Member Code.", "error");
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "Logging in...";
+
+      try {
+        const res = await Auth.loginMember(name, code);
+        if (res.success) {
+          UI.showToast("Login successful!", "success");
+          window.location.href = "dashboard.html";
+        } else {
+          UI.showToast(res.error || "Name or code is incorrect.", "error");
+          btn.disabled = false;
+          btn.textContent = "Log In to My Dashboard →";
+        }
+      } catch (err) {
+        UI.showToast("Connection error.", "error");
+        btn.disabled = false;
+        btn.textContent = "Log In to My Dashboard →";
+      }
+    }
+
+    async function handleRequestAccess(e) {
+      e.preventDefault();
+      const name = document.getElementById("req-name").value.trim();
+      const phone = document.getElementById("req-phone").value.trim();
+      const location = document.getElementById("req-location").value;
+      const message = document.getElementById("req-message").value.trim();
+      const btn = document.getElementById("btn-submit-req");
+
+      btn.disabled = true;
+      btn.textContent = "Submitting...";
+
+      try {
+        const res = await API.post("/api/member-requests", { name, phone, location, message });
+        if (res.success) {
+          UI.confirm(
+            "Application Received! 🎉",
+            "Thank you! Your request has been saved directly to the church database. The coordinator will review your request and send your code.",
+            () => switchLoginTab("member")
+          );
+        } else {
+          UI.showToast(res.error || "Submission failed.", "error");
+        }
+      } catch (err) {
+        UI.showToast("Failed to submit request.", "error");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Submit Access Request";
+      }
+    }
+
+    async function handleAdminLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById("admin-email").value.trim();
+      const password = document.getElementById("admin-password").value.trim();
+      const btn = document.getElementById("btn-login-admin");
+
+      btn.disabled = true;
+      btn.textContent = "Verifying...";
+
+      try {
+        const res = await Auth.loginAdmin(email, password);
+        if (res.success) {
+          UI.showToast("Welcome Administrator!", "success");
+          window.location.href = "admin/dashboard.html";
+        } else {
+          UI.showToast(res.error || "Invalid credentials.", "error");
+          btn.disabled = false;
+          btn.textContent = "Enter Admin Portal →";
+        }
+      } catch (err) {
+        UI.showToast("Connection error.", "error");
+        btn.disabled = false;
+        btn.textContent = "Enter Admin Portal →";
+      }
+    }
+  </script>
+</body>
+</html>

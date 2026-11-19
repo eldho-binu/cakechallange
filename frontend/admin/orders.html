@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Master Order Search & Management — Admin</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/admin.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎂</text></svg>">
+</head>
+<body>
+
+  <div class="admin-layout">
+    
+    <!-- Mobile Sidebar Backdrop -->
+    <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleSidebar()"></div>
+
+    <!-- Admin Sidebar -->
+    <aside class="admin-sidebar" id="admin-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-logo-icon" style="width: 36px; height: 36px; font-size: 1.4rem;">🎂</div>
+        <div class="sidebar-brand">
+          <h2>Cake Challenge</h2>
+          <span>Admin Portal &bull; Pancode</span>
+        </div>
+      </div>
+
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-item"><a href="dashboard.html"><span class="nav-icon">📊</span> Dashboard</a></li>
+        <li class="sidebar-nav-item active"><a href="orders.html"><span class="nav-icon">📦</span> Master Orders</a></li>
+        <li class="sidebar-nav-item"><a href="customers.html"><span class="nav-icon">👥</span> Customers</a></li>
+        <li class="sidebar-nav-item"><a href="members.html"><span class="nav-icon">👤</span> Members</a></li>
+        <li class="sidebar-nav-item"><a href="requests.html"><span class="nav-icon">✨</span> Member Requests</a></li>
+        <li class="sidebar-nav-item"><a href="locations.html"><span class="nav-icon">📍</span> Locations</a></li>
+        <li class="sidebar-nav-item"><a href="cake-settings.html"><span class="nav-icon">🍰</span> Cake Settings</a></li>
+        <li class="sidebar-nav-item"><a href="custom-fields.html"><span class="nav-icon">⚙️</span> Custom Fields</a></li>
+        <li class="sidebar-nav-item"><a href="payments.html"><span class="nav-icon">💳</span> Payment Tracking</a></li>
+        <li class="sidebar-nav-item"><a href="reports.html"><span class="nav-icon">📑</span> Reports & Excel</a></li>
+        <li class="sidebar-nav-item"><a href="activity-logs.html"><span class="nav-icon">📜</span> Activity Logs</a></li>
+        <li class="sidebar-nav-item"><a href="settings.html"><span class="nav-icon">🔧</span> System Settings</a></li>
+        <li class="sidebar-nav-item" style="margin-top: auto;"><a href="javascript:void(0)" onclick="Auth.logout()" style="color: #FFCDD2;"><span class="nav-icon">🚪</span> Logout</a></li>
+      </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="admin-main">
+      <header class="admin-topbar">
+        <div class="topbar-left">
+          <button class="sidebar-toggle-btn" onclick="toggleSidebar()">☰</button>
+          <h2 style="font-size: 1.25rem; margin: 0; color: var(--green-darkest);">Master Order Search & Control</h2>
+        </div>
+        <div class="topbar-right">
+          <span id="system-status-pill" class="system-pill pill-warning">
+            <span class="status-indicator warning"></span> Storage Status
+          </span>
+          <button class="btn btn-outline btn-sm" onclick="toggleArchivedView()" id="btn-toggle-archived">
+            📦 Show Archived Orders
+          </button>
+        </div>
+      </header>
+
+      <main class="admin-content">
+
+        <!-- Master Filter Panel -->
+        <div class="search-filter-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <h3 style="margin: 0; font-size: 1.05rem; color: var(--green-darkest);">Global Search & Multi-Field Filters</h3>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="resetFilters()">Clear All Filters</button>
+          </div>
+
+          <!-- Free text search -->
+          <div class="form-group" style="margin-bottom: 0.85rem;">
+            <input type="text" id="filter-search" class="form-control" placeholder="🔍 Search by Customer Name, Phone, Order ID, Member Name..." oninput="debounceFilter()">
+          </div>
+
+          <!-- Filter Grid -->
+          <div class="search-grid">
+            
+            <div>
+              <label class="form-label" style="font-size: 0.8rem;">Member</label>
+              <select id="filter-member" class="form-control" onchange="loadAdminOrders()">
+                <option value="all">All Members</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="form-label" style="font-size: 0.8rem;">Location</label>
+              <select id="filter-location" class="form-control" onchange="loadAdminOrders()">
+                <option value="all">All Locations</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="form-label" style="font-size: 0.8rem;">Cake Variety</label>
+              <select id="filter-cake" class="form-control" onchange="loadAdminOrders()">
+                <option value="all">All Cakes</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="form-label" style="font-size: 0.8rem;">Weight</label>
+              <select id="filter-weight" class="form-control" onchange="loadAdminOrders()">
+                <option value="all">All Weights</option>
+                <option value="500 g">500 g</option>
+                <option value="1 kg">1 kg</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="form-label" style="font-size: 0.8rem;">Payment Status</label>
+              <select id="filter-payment" class="form-control" onchange="loadAdminOrders()">
+                <option value="all">All Payment Statuses</option>
+                <option value="Paid">Paid</option>
+                <option value="Partially Paid">Partially Paid</option>
+                <option value="Not Paid">Not Paid</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="form-label" style="font-size: 0.8rem;">Verification Status</label>
+              <select id="filter-verification" class="form-control" onchange="loadAdminOrders()">
+                <option value="all">All Verification Statuses</option>
+                <option value="Verified">Verified</option>
+                <option value="Pending Verification">Pending Verification</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="form-label" style="font-size: 0.8rem;">Date From</label>
+              <input type="date" id="filter-date-from" class="form-control" onchange="loadAdminOrders()">
+            </div>
+
+            <div>
+              <label class="form-label" style="font-size: 0.8rem;">Date To</label>
+              <input type="date" id="filter-date-to" class="form-control" onchange="loadAdminOrders()">
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Orders Table -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2 id="orders-list-heading">Master Orders List</h2>
+              <span id="results-count-badge" style="font-size: 0.85rem; color: var(--text-muted);">Showing records...</span>
+            </div>
+            <div>
+              <a href="reports.html" class="btn btn-forest btn-sm">📥 Export Current View</a>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table" id="admin-orders-table">
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Customer</th>
+                  <th>Member</th>
+                  <th>Location</th>
+                  <th>Date</th>
+                  <th>Cakes</th>
+                  <th>Total</th>
+                  <th>Paid</th>
+                  <th>Remaining</th>
+                  <th>Payment</th>
+                  <th>Verification</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admin-orders-tbody">
+                <tr>
+                  <td colspan="12" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+                    Loading master orders...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Admin View & Edit Order Modal -->
+  <div id="admin-order-modal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 720px;">
+      <div class="modal-header">
+        <h3 id="modal-order-title">Order Management</h3>
+        <button class="modal-close" onclick="closeAdminOrderModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-order-content">
+        <!-- Injected dynamically -->
+      </div>
+      <div class="modal-footer" id="modal-order-footer">
+        <button class="btn btn-secondary" onclick="closeAdminOrderModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/ui.js"></script>
+
+  <script>
+    let filterTimer = null;
+    let showingArchived = false;
+    let allMembersList = [];
+
+    function toggleSidebar() {
+      document.getElementById("admin-sidebar").classList.toggle("open");
+      document.getElementById("sidebar-backdrop").classList.toggle("active");
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      if (!Auth.requireRole("admin")) return;
+      UI.checkSystemHealth();
+
+      // Check URL search param
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("search")) {
+        document.getElementById("filter-search").value = params.get("search");
+      }
+
+      await loadFilterDropdowns();
+      loadAdminOrders();
+    });
+
+    async function loadFilterDropdowns() {
+      // 1. Members
+      try {
+        const resMem = await API.get("/api/admin/members");
+        if (resMem.success && Array.isArray(resMem.data)) {
+          allMembersList = resMem.data;
+          const select = document.getElementById("filter-member");
+          select.innerHTML = '<option value="all">All Members</option>' +
+            allMembersList.map(m => `<option value="${m['Member ID']}">${m['Member Name']}</option>`).join("");
+        }
+      } catch (e) {}
+
+      // 2. Locations
+      try {
+        const resLoc = await API.get("/api/locations");
+        if (resLoc.success && Array.isArray(resLoc.data)) {
+          const select = document.getElementById("filter-location");
+          select.innerHTML = '<option value="all">All Locations</option>' +
+            resLoc.data.map(l => `<option value="${l['Location Name']}">${l['Location Name']}</option>`).join("");
+        }
+      } catch (e) {}
+
+      // 3. Cakes
+      try {
+        const resCakes = await API.get("/api/cakes");
+        if (resCakes.success && Array.isArray(resCakes.data)) {
+          const select = document.getElementById("filter-cake");
+          select.innerHTML = '<option value="all">All Cakes</option>' +
+            resCakes.data.map(c => `<option value="${c.cake_id}">${c.cake_name}</option>`).join("");
+        }
+      } catch (e) {}
+    }
+
+    function debounceFilter() {
+      clearTimeout(filterTimer);
+      filterTimer = setTimeout(loadAdminOrders, 300);
+    }
+
+    function resetFilters() {
+      document.getElementById("filter-search").value = "";
+      document.getElementById("filter-member").value = "all";
+      document.getElementById("filter-location").value = "all";
+      document.getElementById("filter-cake").value = "all";
+      document.getElementById("filter-weight").value = "all";
+      document.getElementById("filter-payment").value = "all";
+      document.getElementById("filter-verification").value = "all";
+      document.getElementById("filter-date-from").value = "";
+      document.getElementById("filter-date-to").value = "";
+      loadAdminOrders();
+    }
+
+    function toggleArchivedView() {
+      showingArchived = !showingArchived;
+      const btn = document.getElementById("btn-toggle-archived");
+      const heading = document.getElementById("orders-list-heading");
+      if (showingArchived) {
+        btn.textContent = "📦 Show Active Orders";
+        btn.className = "btn btn-primary btn-sm";
+        heading.textContent = "Archived Orders List";
+      } else {
+        btn.textContent = "📦 Show Archived Orders";
+        btn.className = "btn btn-outline btn-sm";
+        heading.textContent = "Master Orders List";
+      }
+      loadAdminOrders();
+    }
+
+    async function loadAdminOrders() {
+      const tbody = document.getElementById("admin-orders-tbody");
+      const countBadge = document.getElementById("results-count-badge");
+
+      const params = {
+        search: document.getElementById("filter-search").value.trim(),
+        member_id: document.getElementById("filter-member").value,
+        location: document.getElementById("filter-location").value,
+        cake_id: document.getElementById("filter-cake").value,
+        weight: document.getElementById("filter-weight").value,
+        payment_status: document.getElementById("filter-payment").value,
+        verification_status: document.getElementById("filter-verification").value,
+        date_from: document.getElementById("filter-date-from").value,
+        date_to: document.getElementById("filter-date-to").value,
+        archived: showingArchived ? "true" : "false"
+      };
+
+      try {
+        const res = await API.get("/api/admin/orders", params);
+        if (res.success && Array.isArray(res.data)) {
+          const orders = res.data;
+          countBadge.textContent = `${orders.length} order(s) found`;
+
+          if (orders.length === 0) {
+            tbody.innerHTML = `
+              <tr>
+                <td colspan="12">
+                  <div class="empty-state">
+                    <div class="empty-state-icon">🔍</div>
+                    <h3>No matching orders</h3>
+                    <p>Try modifying your global search or filter options.</p>
+                  </div>
+                </td>
+              </tr>
+            `;
+            return;
+          }
+
+          tbody.innerHTML = orders.map(o => `
+            <tr>
+              <td><strong>${o['Order ID']}</strong></td>
+              <td>
+                <strong>${o.customer_name || 'Customer'}</strong><br>
+                <small style="color: var(--text-muted);">${o.customer_phone || ''}</small>
+              </td>
+              <td>${o.member_name || '-'}</td>
+              <td><span style="font-size: 0.85rem;">${o.customer_location || '-'}</span></td>
+              <td>${UI.formatDate(o['Order Date'])}</td>
+              <td><span style="font-size: 0.82rem; color: var(--text-muted);">${o.items_summary || '-'}</span></td>
+              <td><strong>${UI.formatINR(o['Total Amount'])}</strong></td>
+              <td style="color: var(--status-paid); font-weight: 600;">${UI.formatINR(o['Total Amount Paid'])}</td>
+              <td style="color: var(--red-primary); font-weight: 600;">${UI.formatINR(o['Remaining Amount'])}</td>
+              <td>${UI.getPaymentBadge(o['Payment Status'])}</td>
+              <td>${UI.getVerificationBadge(o['Verification Status'])}</td>
+              <td>
+                <div class="action-btn-group">
+                  <button class="btn btn-outline btn-sm" onclick="openAdminOrderModal('${o['Order ID']}')" title="Edit / View">
+                    ✏️ Edit
+                  </button>
+                  ${o['Archived Status'] === 'Archived' ? `
+                    <button class="btn btn-secondary btn-sm" onclick="restoreOrder('${o['Order ID']}')" title="Restore">
+                      🔄 Restore
+                    </button>
+                  ` : `
+                    <button class="btn btn-secondary btn-sm" onclick="archiveOrder('${o['Order ID']}')" title="Archive">
+                      📁 Archive
+                    </button>
+                  `}
+                </div>
+              </td>
+            </tr>
+          `).join("");
+        } else {
+          tbody.innerHTML = `<tr><td colspan="12" style="text-align: center; color: red;">Failed to load orders.</td></tr>`;
+        }
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="12" style="text-align: center; color: red;">Connection error.</td></tr>`;
+      }
+    }
+
+    async function openAdminOrderModal(orderId) {
+      const modal = document.getElementById("admin-order-modal");
+      const title = document.getElementById("modal-order-title");
+      const body = document.getElementById("modal-order-content");
+      const footer = document.getElementById("modal-order-footer");
+
+      title.textContent = `Manage Order: ${orderId}`;
+      body.innerHTML = "<p>Loading order data...</p>";
+      modal.classList.add("active");
+
+      try {
+        const res = await API.get(`/api/orders/${orderId}`);
+        if (res.success && res.data) {
+          const d = res.data;
+          const o = d.order;
+          const c = d.customer;
+          const items = d.items;
+          const payments = d.payments;
+
+          body.innerHTML = `
+            <form id="admin-edit-order-form">
+              <input type="hidden" id="edit-order-id" value="${orderId}">
+              
+              <!-- Customer Edit Fields -->
+              <h4 style="color: var(--green-darkest); margin-bottom: 0.5rem; border-bottom: 1px solid #eee; padding-bottom: 0.35rem;">Customer Details</h4>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Customer Name</label>
+                  <input type="text" id="edit-cust-name" class="form-control" value="${c['Customer Name'] || ''}" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Phone Number</label>
+                  <input type="text" id="edit-cust-phone" class="form-control" value="${c['Phone Number'] || ''}" required>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Address</label>
+                  <input type="text" id="edit-cust-address" class="form-control" value="${c['Address'] || ''}">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Location / Parish Area</label>
+                  <input type="text" id="edit-cust-location" class="form-control" value="${c['Location'] || ''}">
+                </div>
+              </div>
+
+              <!-- Order Control Fields -->
+              <h4 style="color: var(--green-darkest); margin: 1rem 0 0.5rem; border-bottom: 1px solid #eee; padding-bottom: 0.35rem;">Order Control & Assignment</h4>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Assigned Member</label>
+                  <select id="edit-order-member" class="form-control">
+                    ${allMembersList.map(m => `
+                      <option value="${m['Member ID']}" ${m['Member ID'] === o['Member ID'] ? 'selected' : ''}>
+                        ${m['Member Name']} (${m['Location'] || 'Pancode'})
+                      </option>
+                    `).join("")}
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Verification Status</label>
+                  <select id="edit-order-verification" class="form-control">
+                    <option value="Pending Verification" ${o['Verification Status'] === 'Pending Verification' ? 'selected' : ''}>Pending Verification</option>
+                    <option value="Verified" ${o['Verification Status'] === 'Verified' ? 'selected' : ''}>Verified</option>
+                    <option value="Rejected" ${o['Verification Status'] === 'Rejected' ? 'selected' : ''}>Rejected</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Delivery / Collection Instructions</label>
+                <input type="text" id="edit-delivery-notes" class="form-control" value="${o['Delivery or Collection Details'] || ''}">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Special Instructions</label>
+                <input type="text" id="edit-special-instructions" class="form-control" value="${o['Special Instructions'] || ''}">
+              </div>
+
+              <!-- Cakes List Table (Read-Only Summary with Totals) -->
+              <h4 style="color: var(--green-darkest); margin: 1rem 0 0.5rem; border-bottom: 1px solid #eee; padding-bottom: 0.35rem;">Cakes Breakdown</h4>
+              <div class="table-responsive">
+                <table class="table" style="font-size: 0.85rem;">
+                  <thead>
+                    <tr><th>Cake Variety</th><th>Weight</th><th>Qty</th><th>Unit Price</th><th>Subtotal</th></tr>
+                  </thead>
+                  <tbody>
+                    ${items.map(it => `
+                      <tr>
+                        <td><strong>${it['Cake Name']}</strong></td>
+                        <td>${it['Weight']}</td>
+                        <td>${it['Quantity']}</td>
+                        <td>${UI.formatINR(it['Unit Price'])}</td>
+                        <td><strong>${UI.formatINR(it['Subtotal'])}</strong></td>
+                      </tr>
+                    `).join("")}
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Payments List & Verification Actions -->
+              <h4 style="color: var(--green-darkest); margin: 1rem 0 0.5rem; border-bottom: 1px solid #eee; padding-bottom: 0.35rem;">Payment History</h4>
+              ${payments.length > 0 ? `
+                <div class="table-responsive">
+                  <table class="table" style="font-size: 0.85rem;">
+                    <thead>
+                      <tr><th>ID</th><th>Date</th><th>Amount</th><th>Method</th><th>Status</th><th>Action</th></tr>
+                    </thead>
+                    <tbody>
+                      ${payments.map(p => `
+                        <tr>
+                          <td>${p['Payment ID']}</td>
+                          <td>${p['Payment Date']}</td>
+                          <td><strong>${UI.formatINR(p['Payment Amount'])}</strong></td>
+                          <td>${p['Payment Method']}</td>
+                          <td>${UI.getVerificationBadge(p['Verification Status'])}</td>
+                          <td>
+                            ${p['Verification Status'] !== 'Verified' ? `
+                              <button type="button" class="btn btn-forest btn-sm" onclick="adminVerifyPayment('${p['Payment ID']}')">
+                                ✓ Verify
+                              </button>
+                            ` : `
+                              <button type="button" class="btn btn-secondary btn-sm" onclick="adminRejectPayment('${p['Payment ID']}')">
+                                ✗ Reject
+                              </button>
+                            `}
+                          </td>
+                        </tr>
+                      `).join("")}
+                    </tbody>
+                  </table>
+                </div>
+              ` : '<p style="font-size: 0.85rem; color: var(--text-muted);">No payment recorded for this order.</p>'}
+
+              <div style="background: var(--green-surface); padding: 0.85rem 1rem; border-radius: var(--radius-sm); font-size: 0.95rem; margin-top: 0.75rem;">
+                <strong>Order Total:</strong> ${UI.formatINR(o['Total Amount'])} &bull; 
+                <strong>Paid:</strong> ${UI.formatINR(o['Total Amount Paid'])} &bull; 
+                <strong>Remaining:</strong> <span style="color: var(--red-primary); font-weight: 700;">${UI.formatINR(o['Remaining Amount'])}</span>
+              </div>
+            </form>
+          `;
+
+          footer.innerHTML = `
+            <button class="btn btn-secondary" onclick="closeAdminOrderModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="saveAdminOrderUpdates('${orderId}')">Save Changes</button>
+          `;
+        }
+      } catch (e) {
+        body.innerHTML = `<p style="color: red;">Failed to load order details.</p>`;
+      }
+    }
+
+    function closeAdminOrderModal() {
+      document.getElementById("admin-order-modal").classList.remove("active");
+    }
+
+    async function saveAdminOrderUpdates(orderId) {
+      const payload = {
+        member_id: document.getElementById("edit-order-member").value,
+        verification_status: document.getElementById("edit-order-verification").value,
+        delivery_notes: document.getElementById("edit-delivery-notes").value.trim(),
+        special_instructions: document.getElementById("edit-special-instructions").value.trim(),
+        customer: {
+          name: document.getElementById("edit-cust-name").value.trim(),
+          phone: document.getElementById("edit-cust-phone").value.trim(),
+          address: document.getElementById("edit-cust-address").value.trim(),
+          location: document.getElementById("edit-cust-location").value.trim()
+        }
+      };
+
+      try {
+        const res = await API.put(`/api/orders/${orderId}`, payload);
+        if (res.success) {
+          UI.showToast("Order updated successfully in Google Sheets!", "success");
+          closeAdminOrderModal();
+          loadAdminOrders();
+        } else {
+          UI.showToast(res.error || "Failed to update order.", "error");
+        }
+      } catch (e) {
+        UI.showToast("Connection error.", "error");
+      }
+    }
+
+    async function adminVerifyPayment(paymentId) {
+      try {
+        const res = await API.post(`/api/admin/payments/${paymentId}/verify`, {});
+        if (res.success) {
+          UI.showToast("Payment verified!", "success");
+          const orderId = document.getElementById("edit-order-id").value;
+          openAdminOrderModal(orderId);
+          loadAdminOrders();
+        } else {
+          UI.showToast(res.error || "Failed to verify payment.", "error");
+        }
+      } catch (e) {
+        UI.showToast("Error verifying payment.", "error");
+      }
+    }
+
+    async function adminRejectPayment(paymentId) {
+      try {
+        const res = await API.post(`/api/admin/payments/${paymentId}/reject`, {});
+        if (res.success) {
+          UI.showToast("Payment rejected.", "warning");
+          const orderId = document.getElementById("edit-order-id").value;
+          openAdminOrderModal(orderId);
+          loadAdminOrders();
+        } else {
+          UI.showToast(res.error || "Failed to reject payment.", "error");
+        }
+      } catch (e) {
+        UI.showToast("Error rejecting payment.", "error");
+      }
+    }
+
+    function archiveOrder(orderId) {
+      UI.confirm(
+        "Archive Order?",
+        `Are you sure you want to archive Order <strong>${orderId}</strong>? It will be hidden from normal active views.`,
+        async () => {
+          try {
+            const res = await API.post(`/api/orders/${orderId}/archive`, {});
+            if (res.success) {
+              UI.showToast(`Order ${orderId} archived.`, "info");
+              loadAdminOrders();
+            }
+          } catch (e) {
+            UI.showToast("Failed to archive order.", "error");
+          }
+        }
+      );
+    }
+
+    function restoreOrder(orderId) {
+      UI.confirm(
+        "Restore Order?",
+        `Restore Order <strong>${orderId}</strong> back to active status?`,
+        async () => {
+          try {
+            const res = await API.post(`/api/orders/${orderId}/restore`, {});
+            if (res.success) {
+              UI.showToast(`Order ${orderId} restored to active.`, "success");
+              loadAdminOrders();
+            }
+          } catch (e) {
+            UI.showToast("Failed to restore order.", "error");
+          }
+        }
+      );
+    }
+  </script>
+</body>
+</html>

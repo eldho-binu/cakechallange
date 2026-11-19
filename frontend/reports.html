@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Reports — Christmas Cake Challenge</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎂</text></svg>">
+</head>
+<body>
+
+  <!-- Site Header -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="dashboard.html" class="brand-wrapper">
+        <div class="brand-logo-icon">🎂</div>
+        <div class="brand-titles">
+          <h1>Christmas Cake Challenge</h1>
+          <span>My Performance & Reports</span>
+        </div>
+      </a>
+      <nav class="main-nav" id="main-nav">
+        <a href="dashboard.html" class="nav-link">🏠 Home</a>
+        <a href="add-order.html" class="nav-link">➕ Add Order</a>
+        <a href="my-orders.html" class="nav-link">📦 My Orders</a>
+        <a href="reports.html" class="nav-link active">📊 My Reports</a>
+        <a href="javascript:void(0)" onclick="Auth.logout()" class="nav-link" style="color: #FFCDD2;">🚪 Logout</a>
+      </nav>
+      <button class="mobile-nav-toggle" onclick="document.getElementById('main-nav').classList.toggle('active')">☰</button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main style="flex: 1; padding: 2rem 0 3rem;">
+    <div class="container">
+
+      <!-- Header & Download Bar -->
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
+        <div>
+          <h1 style="font-size: 1.6rem; color: var(--green-darkest); margin-bottom: 0.25rem;">My Sales Summary</h1>
+          <p style="color: var(--text-muted); font-size: 0.95rem; margin: 0;">
+            Live calculations synced with your Church Google Spreadsheet.
+          </p>
+        </div>
+        <div>
+          <button type="button" class="btn btn-primary" onclick="downloadMemberExcel()" style="padding: 0.75rem 1.5rem; font-size: 1rem;">
+            📥 Download My Excel (.xlsx)
+          </button>
+        </div>
+      </div>
+
+      <!-- Financial Metrics Grid -->
+      <div class="kpi-grid" style="margin-bottom: 2rem;">
+        <div class="kpi-card kpi-gold">
+          <div class="kpi-icon">🎂</div>
+          <div>
+            <div class="kpi-label">Cakes Sold</div>
+            <div class="kpi-value" id="rep-cakes">0</div>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon">📦</div>
+          <div>
+            <div class="kpi-label">Orders Collected</div>
+            <div class="kpi-value" id="rep-orders">0</div>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background: #E8F5E9; color: #2E7D32;">💵</div>
+          <div>
+            <div class="kpi-label">Total Collected</div>
+            <div class="kpi-value" id="rep-collected" style="color: #2E7D32;">₹0</div>
+          </div>
+        </div>
+
+        <div class="kpi-card kpi-red">
+          <div class="kpi-icon">⏳</div>
+          <div>
+            <div class="kpi-label">Pending Balance</div>
+            <div class="kpi-value" id="rep-pending" style="color: var(--red-primary);">₹0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Order Status Breakdown Cards -->
+      <div class="card" style="margin-bottom: 2rem;">
+        <div class="card-header" style="border-bottom: 1px solid #F0F4F1; padding-bottom: 0.75rem; margin-bottom: 1rem;">
+          <h2 style="font-size: 1.25rem;">Order Collection Status</h2>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+          
+          <div style="background: #E8F5E9; border-left: 5px solid var(--status-paid); padding: 1.25rem; border-radius: var(--radius-sm);">
+            <div style="font-size: 0.85rem; font-weight: 700; color: #1B5E20; text-transform: uppercase;">Fully Paid Orders</div>
+            <div style="font-size: 2rem; font-weight: 800; color: #1B5E20; margin: 0.25rem 0;" id="breakdown-paid">0</div>
+            <p style="font-size: 0.85rem; color: #2E7D32; margin: 0;">Balance is completely settled</p>
+          </div>
+
+          <div style="background: #FFF3E0; border-left: 5px solid var(--status-partial); padding: 1.25rem; border-radius: var(--radius-sm);">
+            <div style="font-size: 0.85rem; font-weight: 700; color: #E65100; text-transform: uppercase;">Advance Paid</div>
+            <div style="font-size: 2rem; font-weight: 800; color: #E65100; margin: 0.25rem 0;" id="breakdown-partial">0</div>
+            <p style="font-size: 0.85rem; color: #E65100; margin: 0;">Partially paid; balance due</p>
+          </div>
+
+          <div style="background: #FFEBEE; border-left: 5px solid var(--status-unpaid); padding: 1.25rem; border-radius: var(--radius-sm);">
+            <div style="font-size: 0.85rem; font-weight: 700; color: #C62828; text-transform: uppercase;">Not Paid Yet</div>
+            <div style="font-size: 2rem; font-weight: 800; color: #C62828; margin: 0.25rem 0;" id="breakdown-unpaid">0</div>
+            <p style="font-size: 0.85rem; color: #C62828; margin: 0;">No payment recorded yet</p>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Excel Export Guidance Box -->
+      <div class="card" style="background: var(--green-subtle); border: 2px dashed var(--green-primary); text-align: center; padding: 2rem;">
+        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📊 📄</div>
+        <h3 style="color: var(--green-darkest); margin-bottom: 0.5rem;">Print or Share Your Order Book</h3>
+        <p style="font-size: 0.95rem; color: var(--text-muted); max-width: 550px; margin: 0 auto 1.25rem;">
+          Download an Excel spreadsheet with every customer's name, phone, address, cake details, and payment status ready for offline reference.
+        </p>
+        <button type="button" class="btn btn-primary" onclick="downloadMemberExcel()" style="padding: 0.85rem 2rem; font-size: 1.05rem;">
+          📥 Download My Orders (.xlsx)
+        </button>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <p style="margin-bottom: 0.3rem;">Christmas Cake Challenge &bull; Church Youth Group</p>
+      <p style="font-size: 0.8rem; margin: 0; color: rgba(255,255,255,0.6);">Persistent Storage on Google Sheets</p>
+    </div>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/ui.js"></script>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      if (!Auth.requireRole("member")) return;
+      loadReportsData();
+    });
+
+    async function loadReportsData() {
+      try {
+        const res = await API.get("/api/reports/member-summary");
+        if (res.success && res.data) {
+          const d = res.data;
+          document.getElementById("rep-orders").textContent = d.total_orders;
+          document.getElementById("rep-cakes").textContent = d.total_cakes;
+          document.getElementById("rep-collected").textContent = UI.formatINR(d.total_collected);
+          document.getElementById("rep-pending").textContent = UI.formatINR(d.total_pending);
+
+          document.getElementById("breakdown-paid").textContent = d.paid_orders;
+          document.getElementById("breakdown-partial").textContent = d.partially_paid;
+          document.getElementById("breakdown-unpaid").textContent = d.unpaid_orders;
+        }
+      } catch (e) {
+        UI.showToast("Failed to load reports data.", "error");
+      }
+    }
+
+    function downloadMemberExcel() {
+      const url = API.getDownloadUrl("/api/reports/member-excel");
+      window.location.href = url;
+    }
+  </script>
+</body>
+</html>
