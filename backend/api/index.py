@@ -19,10 +19,10 @@ from services.authentication import (
     hash_code_or_password, log_activity, MASTER_ADMIN_EMAIL
 )
 from services.order_service import (
-    create_order, get_order_details, get_active_cakes, find_or_create_customer
+    create_order, get_order_details, get_active_cakes, find_or_create_customer, update_order_full
 )
 from services.payment_service import (
-    record_payment, update_payment_verification, recalculate_order_payments
+    record_payment, update_payment_verification, recalculate_order_payments, update_payment_details
 )
 from services.email_service import send_member_request_notification
 from services.excel_service import generate_member_excel, generate_admin_master_workbook
@@ -871,12 +871,24 @@ def toggle_custom_field_status(fid):
 @app.route("/api/customers/search", methods=["GET"])
 @require_auth()
 def search_customers():
-    """Autocomplete search by phone or name for reuse in order form."""
+    """
+    Autocomplete search by phone or name for reuse in order form.
+    Strictly isolated: members can ONLY search their own customers.
+    """
     q = request.args.get("q", "").strip().lower()
     if not q or len(q) < 3:
         return jsonify({"success": True, "data": []})
 
+    user = g.current_user
     customers = sheets_service.get_all_records("Customers")
+
+    # If member, only search customers who have orders belonging to this member
+    if user.get("role") == "member":
+        member_id = str(user.get("sub", "")).strip()
+        all_orders = sheets_service.get_all_records("Orders")
+        member_cust_ids = {str(o.get("Customer ID", "")).strip() for o in all_orders if str(o.get("Member ID", "")).strip() == member_id}
+        customers = [c for c in customers if str(c.get("Customer ID", "")).strip() in member_cust_ids]
+
     matched = []
     for c in customers:
         if c.get("Archived Status") == "Archived":
@@ -1200,64 +1212,49 @@ def get_single_order(oid):
 @require_auth(allowed_roles=["admin", "member"])
 def update_order(oid):
     """
-    Updates permitted order details.
-    If member: locked if order is Verified!
-    If admin: unrestricted edit of customer details, notes, delivery, member reassign.
+    Updates order details: customer information, cake items & quantities,
+    delivery instructions, notes, and payments.
+    Recalculates totals using current cake prices.
+    Enforces authorization: members can ONLY edit their own orders.
     """
     user = g.current_user
-    order = sheets_service.find_record("Orders", "Order ID", oid)
-    if not order:
-        return jsonify({"success": False, "error": "Order not found."}), 404
-
-    is_admin = (user.get("role") == "admin")
-    if not is_admin:
-        if str(order.get("Member ID", "")).strip() != str(user.get("sub")).strip():
-            return jsonify({"success": False, "error": "Access denied."}), 403
-        if order.get("Verification Status") == "Verified":
-            return jsonify({
-                "success": False, 
-                "error": "This order is verified and locked against member edits. Please request a correction from the administrator."
-            }), 403
-
     data = request.get_json(silent=True) or {}
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    updates = {"Updated Date": now_str}
 
-    if "delivery_notes" in data:
-        updates["Delivery or Collection Details"] = data["delivery_notes"].strip()
-    if "special_instructions" in data:
-        updates["Special Instructions"] = data["special_instructions"].strip()
+    customer_data = data.get("customer")
+    items_data = data.get("items")
+    delivery_notes = data.get("delivery_notes")
+    special_instructions = data.get("special_instructions")
+    additional_payment = data.get("payment")
 
-    if is_admin:
-        if "member_id" in data and data["member_id"].strip():
-            updates["Member ID"] = data["member_id"].strip()
-        if "order_status" in data:
-            updates["Order Status"] = data["order_status"]
-        if "verification_status" in data:
-            updates["Verification Status"] = data["verification_status"]
-
-    sheets_service.update_row("Orders", "Order ID", oid, updates)
-
-    # If customer info provided, update customer record
-    if "customer" in data and isinstance(data["customer"], dict):
-        cid = order.get("Customer ID")
-        cust_updates = {"Updated Date": now_str}
-        cdata = data["customer"]
-        if "name" in cdata: cust_updates["Customer Name"] = cdata["name"].strip()
-        if "phone" in cdata: cust_updates["Phone Number"] = cdata["phone"].strip()
-        if "alt_phone" in cdata: cust_updates["Alternate Phone Number"] = cdata["alt_phone"].strip()
-        if "address" in cdata: cust_updates["Address"] = cdata["address"].strip()
-        if "location" in cdata: cust_updates["Location"] = cdata["location"].strip()
-        if "landmark" in cdata: cust_updates["Landmark"] = cdata["landmark"].strip()
-        sheets_service.update_row("Customers", "Customer ID", cid, cust_updates)
-
-    log_activity(
-        user.get("name"),
-        "ORDER_UPDATED",
-        f"Order {oid} updated by {user.get('name')}.",
-        record_id=oid
+    res, err = update_order_full(
+        order_id=oid,
+        user_role=user.get("role"),
+        user_id=user.get("sub"),
+        user_name=user.get("name"),
+        customer_data=customer_data,
+        items_data=items_data,
+        delivery_notes=delivery_notes,
+        special_instructions=special_instructions,
+        additional_payment=additional_payment
     )
-    return jsonify({"success": True, "message": "Order updated successfully."})
+
+    if err:
+        status_code = 404 if "not found" in err.lower() else (403 if "access denied" in err.lower() else 400)
+        return jsonify({"success": False, "error": err}), status_code
+
+    # If admin specified member reassign or manual verification status:
+    if user.get("role") == "admin":
+        admin_updates = {}
+        if "member_id" in data and data["member_id"].strip():
+            admin_updates["Member ID"] = data["member_id"].strip()
+        if "order_status" in data:
+            admin_updates["Order Status"] = data["order_status"]
+        if "verification_status" in data:
+            admin_updates["Verification Status"] = data["verification_status"]
+        if admin_updates:
+            sheets_service.update_row("Orders", "Order ID", oid, admin_updates)
+
+    return jsonify({"success": True, "message": "Order updated successfully.", "data": res})
 
 
 @app.route("/api/orders/<oid>/reopen", methods=["POST"])
@@ -1340,6 +1337,8 @@ def add_order_payment(oid):
     is_admin = (user.get("role") == "admin")
     verification_status = "Verified" if is_admin else "Pending Verification"
 
+    payment_date = data.get("date") or data.get("payment_date")
+
     res, err = record_payment(
         order_id=oid,
         member_id=order.get("Member ID"),
@@ -1348,7 +1347,8 @@ def add_order_payment(oid):
         recorded_by=user.get("name"),
         reference=reference,
         notes=notes,
-        verification_status=verification_status
+        verification_status=verification_status,
+        payment_date=payment_date
     )
 
     if err:
@@ -1435,6 +1435,26 @@ def reject_payment(pid):
     if err:
         return jsonify({"success": False, "error": err}), 400
     return jsonify({"success": True, "message": "Payment rejected.", "data": res})
+
+
+@app.route("/api/admin/payments/<pid>", methods=["PUT"])
+@require_auth(allowed_roles=["admin"])
+def correct_payment(pid):
+    """Allows administrator to review and correct payment amount, method, date, or notes."""
+    data = request.get_json(silent=True) or {}
+    res, err = update_payment_details(
+        payment_id=pid,
+        admin_user=g.current_user.get("name"),
+        amount=data.get("amount"),
+        method=data.get("method"),
+        payment_date=data.get("date") or data.get("payment_date"),
+        reference=data.get("reference"),
+        notes=data.get("notes"),
+        verification_status=data.get("verification_status")
+    )
+    if err:
+        return jsonify({"success": False, "error": err}), 400
+    return jsonify({"success": True, "message": "Payment record corrected successfully.", "data": res})
 
 
 # ---------------------------------------------------------------------------

@@ -123,6 +123,64 @@
     </div>
   </div>
 
+  <!-- Correct Payment Modal -->
+  <div id="correct-payment-modal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3 id="modal-correct-title">✏️ Correct Payment Record</h3>
+        <button class="modal-close" onclick="closeCorrectPaymentModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="correct-pid">
+
+        <div class="form-group">
+          <label class="form-label">Payment Amount (₹) <span class="required">*</span></label>
+          <input type="number" id="correct-amount" class="form-control" min="1" step="any" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Payment Date</label>
+          <input type="date" id="correct-date" class="form-control" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Payment Method</label>
+          <select id="correct-method" class="form-control">
+            <option value="Cash">Cash</option>
+            <option value="UPI / GPay">UPI / GPay</option>
+            <option value="Bank Transfer">Bank Transfer</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Reference ID</label>
+          <input type="text" id="correct-ref" class="form-control" placeholder="Transaction / UPI Ref">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Verification Status</label>
+          <select id="correct-status" class="form-control">
+            <option value="Pending Verification">Pending Verification</option>
+            <option value="Verified">Verified</option>
+            <option value="Rejected">Rejected</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Correction Note / Reason</label>
+          <input type="text" id="correct-notes" class="form-control" placeholder="e.g. Corrected receipt entry">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeCorrectPaymentModal()">Cancel</button>
+        <button class="btn btn-primary" id="btn-save-correct-payment" onclick="savePaymentCorrection()">
+          Save Correction
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script src="../js/config.js"></script>
   <script src="../js/api.js"></script>
   <script src="../js/auth.js"></script>
@@ -193,6 +251,9 @@
               <td><small>${p['Verified By'] || '-'}</small></td>
               <td>
                 <div class="action-btn-group">
+                  <button class="btn btn-outline btn-sm" onclick='openCorrectPaymentModal(${JSON.stringify(p).replace(/'/g, "&#39;")})' title="Edit Payment Record">
+                    ✏️ Edit
+                  </button>
                   ${p['Verification Status'] !== 'Verified' ? `
                     <button class="btn btn-forest btn-sm" onclick="verifySinglePayment('${p['Payment ID']}')" title="Verify Payment">
                       ✓ Verify
@@ -245,6 +306,65 @@
           }
         }
       );
+    }
+
+    function openCorrectPaymentModal(p) {
+      document.getElementById("correct-pid").value = p["Payment ID"];
+      document.getElementById("modal-correct-title").textContent = `✏️ Edit Payment #${p["Payment ID"]}`;
+      document.getElementById("correct-amount").value = p["Payment Amount"] || "";
+      document.getElementById("correct-date").value = p["Payment Date"] || "";
+      document.getElementById("correct-method").value = p["Payment Method"] || "Cash";
+      document.getElementById("correct-ref").value = p["Payment Reference"] || "";
+      document.getElementById("correct-status").value = p["Verification Status"] || "Pending Verification";
+      document.getElementById("correct-notes").value = p["Notes"] || "";
+      document.getElementById("correct-payment-modal").classList.add("active");
+    }
+
+    function closeCorrectPaymentModal() {
+      document.getElementById("correct-payment-modal").classList.remove("active");
+    }
+
+    async function savePaymentCorrection() {
+      const pid = document.getElementById("correct-pid").value;
+      const amount = parseFloat(document.getElementById("correct-amount").value) || 0;
+      const date = document.getElementById("correct-date").value;
+      const method = document.getElementById("correct-method").value;
+      const ref = document.getElementById("correct-ref").value.trim();
+      const status = document.getElementById("correct-status").value;
+      const notes = document.getElementById("correct-notes").value.trim();
+      const saveBtn = document.getElementById("btn-save-correct-payment");
+
+      if (amount <= 0) {
+        UI.showToast("Please enter a valid amount.", "error");
+        return;
+      }
+
+      saveBtn.disabled = true;
+      saveBtn.textContent = "Saving...";
+
+      try {
+        const res = await API.put(`/api/admin/payments/${pid}`, {
+          amount,
+          date,
+          method,
+          reference: ref,
+          verification_status: status,
+          notes
+        });
+
+        if (res.success) {
+          UI.showToast("Payment corrected successfully!", "success");
+          closeCorrectPaymentModal();
+          loadPayments();
+        } else {
+          UI.showToast(res.error || "Failed to correct payment.", "error");
+        }
+      } catch (e) {
+        UI.showToast("Connection error.", "error");
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = "Save Correction";
+      }
     }
   </script>
 </body>

@@ -91,11 +91,15 @@ DEFAULT_SEEDS = {
         ]
     ],
     "Locations": [
-        ["LOC-001", "Pancode Central", "Parish church & central hall", "Active"],
-        ["LOC-002", "North Ward", "Residential area north sector", "Active"],
-        ["LOC-003", "South Ward", "Residential area south sector", "Active"],
-        ["LOC-004", "East Ward", "East side community", "Active"],
-        ["LOC-005", "West Ward", "West side community", "Active"]
+        ["LOC-001", "Vellapara Kurish", "Parish ward around Vellapara Kurish", "Active"],
+        ["LOC-002", "St Marys Kurish", "Parish ward around St Marys Kurish", "Active"],
+        ["LOC-003", "Kurachi Kurish", "Parish ward around Kurachi Kurish", "Active"],
+        ["LOC-004", "Pottackathazham Kurish", "Parish ward around Pottackathazham Kurish", "Active"],
+        ["LOC-005", "Mullasheery Kurish", "Parish ward around Mullasheery Kurish", "Active"],
+        ["LOC-006", "St Peters and St Pauls Kurish", "Parish ward around St Peters & St Pauls Kurish", "Active"],
+        ["LOC-007", "Theckubagam", "Theckubagam parish ward", "Active"],
+        ["LOC-008", "Palli Nearby", "Areas surrounding main parish church", "Active"],
+        ["LOC-009", "Others", "Custom member/customer location", "Active"]
     ],
     "Custom_Fields": [
         ["FIELD-001", "Delivery Preference", "Dropdown", "Yes", "Home Delivery, Church Collection, Ward Coordinator Pickup", "Active", "1"],
@@ -189,6 +193,7 @@ class GoogleSheetsService:
                     from googleapiclient.discovery import build
                     self.service = build("sheets", "v4", credentials=creds, cache_discovery=False)
                     self._ensure_all_sheets()
+                    self.sync_default_locations()
                     self._initialized = True
                     self._init_error = None
                     logger.info(f"Connected to Google Sheets: {self.spreadsheet_id}")
@@ -503,6 +508,126 @@ class GoogleSheetsService:
 
         self._retry_api_call(write_update)
         return True
+
+    def replace_rows_by_column(self, sheet_name, col_name, col_val, new_records):
+        """
+        Replaces all rows where col_name == col_val in sheet_name with new_records.
+        Preserves headers and all other non-matching rows.
+        """
+        with self._lock:
+            self._cache.pop(sheet_name, None)
+            headers = SHEET_SCHEMAS.get(sheet_name, [])
+
+            if not self.service or not self._initialized:
+                rows = self._local_storage.get(sheet_name, [headers])
+                if not rows:
+                    rows = [headers]
+                col_headers = [str(h).strip() for h in rows[0]]
+                if col_name not in col_headers:
+                    return False
+                c_idx = col_headers.index(col_name)
+                preserved = [rows[0]]
+                for r in rows[1:]:
+                    if len(r) <= c_idx or str(r[c_idx]).strip() != str(col_val).strip():
+                        preserved.append(r)
+                for item in new_records:
+                    if isinstance(item, dict):
+                        preserved.append([str(item.get(h, "")) for h in col_headers])
+                    else:
+                        preserved.append([str(v) for v in item])
+                self._local_storage[sheet_name] = preserved
+                return True
+
+            def fetch_all():
+                return self.service.spreadsheets().values().get(
+                    spreadsheetId=self.spreadsheet_id,
+                    range=f"'{sheet_name}'!A:Z"
+                ).execute()
+
+            res = self._retry_api_call(fetch_all)
+            values = res.get("values", [])
+            if not values:
+                sheet_headers = headers
+                values = [headers]
+            else:
+                sheet_headers = [str(h).strip() for h in values[0]]
+
+            if col_name not in sheet_headers:
+                logger.error(f"Column {col_name} not found in {sheet_name}")
+                return False
+
+            c_idx = sheet_headers.index(col_name)
+            preserved = [values[0]]
+            for r in values[1:]:
+                if len(r) <= c_idx or str(r[c_idx]).strip() != str(col_val).strip():
+                    preserved.append(r)
+
+            for item in new_records:
+                if isinstance(item, dict):
+                    preserved.append([str(item.get(h, "")) for h in sheet_headers])
+                else:
+                    preserved.append([str(v) for v in item])
+
+            def clear_call():
+                return self.service.spreadsheets().values().clear(
+                    spreadsheetId=self.spreadsheet_id,
+                    range=f"'{sheet_name}'!A:Z"
+                ).execute()
+
+            def write_call():
+                return self.service.spreadsheets().values().update(
+                    spreadsheetId=self.spreadsheet_id,
+                    range=f"'{sheet_name}'!A1",
+                    valueInputOption="USER_ENTERED",
+                    body={"values": preserved}
+                ).execute()
+
+            self._retry_api_call(clear_call)
+            self._retry_api_call(write_call)
+            return True
+
+    def sync_default_locations(self):
+        """Ensures all 9 canonical church locations exist in the Locations tab without removing existing ones."""
+        canonical_locations = [
+            ("LOC-001", "Vellapara Kurish", "Parish ward around Vellapara Kurish"),
+            ("LOC-002", "St Marys Kurish", "Parish ward around St Marys Kurish"),
+            ("LOC-003", "Kurachi Kurish", "Parish ward around Kurachi Kurish"),
+            ("LOC-004", "Pottackathazham Kurish", "Parish ward around Pottackathazham Kurish"),
+            ("LOC-005", "Mullasheery Kurish", "Parish ward around Mullasheery Kurish"),
+            ("LOC-006", "St Peters and St Pauls Kurish", "Parish ward around St Peters & St Pauls Kurish"),
+            ("LOC-007", "Theckubagam", "Theckubagam parish ward"),
+            ("LOC-008", "Palli Nearby", "Areas surrounding main parish church"),
+            ("LOC-009", "Others", "Custom member/customer location")
+        ]
+        try:
+            existing = self.get_all_records("Locations")
+            existing_names = {str(l.get("Location Name", "")).strip().lower() for l in existing}
+
+            to_add = []
+            max_id_num = 0
+            for l in existing:
+                lid = str(l.get("Location ID", ""))
+                if lid.startswith("LOC-"):
+                    try:
+                        max_id_num = max(max_id_num, int(lid.split("-")[1]))
+                    except ValueError:
+                        pass
+
+            for _, loc_name, loc_desc in canonical_locations:
+                if loc_name.lower() not in existing_names:
+                    max_id_num += 1
+                    to_add.append({
+                        "Location ID": f"LOC-{str(max_id_num).zfill(3)}",
+                        "Location Name": loc_name,
+                        "Description": loc_desc,
+                        "Active Status": "Active"
+                    })
+
+            if to_add:
+                self.append_rows("Locations", to_add)
+                logger.info(f"Added {len(to_add)} missing canonical locations to Locations sheet.")
+        except Exception as e:
+            logger.error(f"Error syncing default locations: {e}")
 
     def find_record(self, sheet_name, col_name, value):
         """Returns the first matching record dict or None."""

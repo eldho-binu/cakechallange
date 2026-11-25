@@ -57,7 +57,7 @@
     </div>
   </header>
 
-  <main style="flex: 1; display: flex; align-items: center; padding: 2rem 0;">
+  <main style="flex: 1 0 auto; display: flex; flex-direction: column; justify-content: center; padding: 2rem 0; min-height: calc(100vh - 160px);">
     <div class="login-container">
       
       <div class="card" style="border-top: 6px solid var(--green-primary); padding: 2rem 1.75rem;">
@@ -134,14 +134,20 @@
 
             <div class="form-group">
               <label class="form-label" for="req-location">Parish Ward / Location</label>
-              <select id="req-location" class="form-control">
-                <option value="Pancode Central">Pancode Central</option>
-                <option value="North Ward">North Ward</option>
-                <option value="South Ward">South Ward</option>
-                <option value="East Ward">East Ward</option>
-                <option value="West Ward">West Ward</option>
-                <option value="Other">Other Ward</option>
+              <select id="req-location" class="form-control" onchange="toggleReqLocationOther()">
+                <option value="Vellapara Kurish">Vellapara Kurish</option>
+                <option value="St Marys Kurish">St Marys Kurish</option>
+                <option value="Kurachi Kurish">Kurachi Kurish</option>
+                <option value="Pottackathazham Kurish">Pottackathazham Kurish</option>
+                <option value="Mullasheery Kurish">Mullasheery Kurish</option>
+                <option value="St Peters and St Pauls Kurish">St Peters and St Pauls Kurish</option>
+                <option value="Theckubagam">Theckubagam</option>
+                <option value="Palli Nearby">Palli Nearby</option>
+                <option value="Others">Others</option>
               </select>
+              <div id="req-location-other-box" class="location-other-box" style="margin-top: 0.65rem; display: none;">
+                <input type="text" id="req-location-other" class="form-control" placeholder="Please enter your location manually">
+              </div>
             </div>
 
             <div class="form-group">
@@ -260,11 +266,26 @@
       }
     }
 
+    function toggleReqLocationOther() {
+      const sel = document.getElementById("req-location").value;
+      const box = document.getElementById("req-location-other-box");
+      if (sel === "Others") {
+        box.style.display = "block";
+        document.getElementById("req-location-other").focus();
+      } else {
+        box.style.display = "none";
+      }
+    }
+
     async function handleRequestAccess(e) {
       e.preventDefault();
       const name = document.getElementById("req-name").value.trim();
       const phone = document.getElementById("req-phone").value.trim();
-      const location = document.getElementById("req-location").value;
+      let location = document.getElementById("req-location").value;
+      if (location === "Others") {
+        const otherVal = document.getElementById("req-location-other").value.trim();
+        location = otherVal ? otherVal : "Others";
+      }
       const message = document.getElementById("req-message").value.trim();
       const btn = document.getElementById("btn-submit-req");
 

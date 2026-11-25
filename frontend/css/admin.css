@@ -6,7 +6,9 @@
 .admin-layout {
   display: flex;
   min-height: 100vh;
+  min-height: 100dvh;
   background-color: #F8FAF7;
+  overflow-x: hidden;
 }
 
 /* Sidebar */
@@ -20,9 +22,11 @@
   position: sticky;
   top: 0;
   height: 100vh;
+  height: 100dvh;
   z-index: 100;
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .sidebar-header {
@@ -101,10 +105,13 @@
 
 /* Admin Main Content Area */
 .admin-main {
-  flex: 1;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   min-width: 0;
+  width: 100%;
+  overflow-x: hidden;
+  overflow-y: visible;
 }
 
 .admin-topbar {
@@ -143,7 +150,8 @@
 
 .admin-content {
   padding: 1.75rem;
-  flex: 1;
+  flex: 1 0 auto;
+  width: 100%;
 }
 
 /* Master Order Search Section */
@@ -228,8 +236,14 @@
 @media (max-width: 992px) {
   .admin-sidebar {
     position: fixed;
+    top: 0;
+    bottom: 0;
     left: -260px;
+    height: 100%;
+    height: 100dvh;
     transition: left 0.3s ease;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
   .admin-sidebar.open {
     left: 0;

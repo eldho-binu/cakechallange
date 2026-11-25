@@ -64,9 +64,10 @@ def recalculate_order_payments(order_id):
     }
 
 
-def record_payment(order_id, member_id, amount, payment_method, recorded_by, reference="", notes="", verification_status="Pending Verification"):
+def record_payment(order_id, member_id, amount, payment_method, recorded_by, reference="", notes="", verification_status="Pending Verification", payment_date=None):
     """
     Records a new payment row and updates the order totals.
+    Includes duplicate payment prevention.
     """
     order = sheets_service.find_record("Orders", "Order ID", order_id)
     if not order:
@@ -80,6 +81,19 @@ def record_payment(order_id, member_id, amount, payment_method, recorded_by, ref
         return None, "Invalid payment amount."
 
     now = datetime.now()
+    p_date = payment_date.strip() if (payment_date and str(payment_date).strip()) else now.strftime("%Y-%m-%d")
+
+    # Duplicate prevention: check recent payments for this order
+    all_payments = sheets_service.get_all_records("Payments")
+    for p in all_payments:
+        if (str(p.get("Order ID", "")).strip() == str(order_id).strip() and
+            str(p.get("Payment Amount", "")).strip() == f"{amt_float:.2f}" and
+            str(p.get("Payment Method", "")).strip().lower() == str(payment_method or "Cash").strip().lower() and
+            str(p.get("Payment Date", "")).strip() == p_date and
+            str(p.get("Payment Reference", "")).strip() == str(reference or "").strip() and
+            p.get("Verification Status") != "Rejected"):
+            return None, f"An identical payment of ₹{amt_float:.2f} for this order was already recorded."
+
     payment_id = f"PAY-{uuid.uuid4().hex[:8].upper()}"
 
     payment_record = {
@@ -87,7 +101,7 @@ def record_payment(order_id, member_id, amount, payment_method, recorded_by, ref
         "Order ID": order_id,
         "Member ID": member_id,
         "Payment Amount": f"{amt_float:.2f}",
-        "Payment Date": now.strftime("%Y-%m-%d"),
+        "Payment Date": p_date,
         "Payment Time": now.strftime("%H:%M:%S"),
         "Payment Method": payment_method or "Cash",
         "Payment Reference": reference or "",
@@ -113,6 +127,58 @@ def record_payment(order_id, member_id, amount, payment_method, recorded_by, ref
         "payment": payment_record,
         "order_summary": summary
     }, None
+
+
+def update_payment_details(payment_id, admin_user, amount=None, method=None, payment_date=None, reference=None, notes=None, verification_status=None):
+    """
+    Allows administrator to correct or update a payment record.
+    Recalculates order payment status and logs the changes.
+    """
+    payment = sheets_service.find_record("Payments", "Payment ID", payment_id)
+    if not payment:
+        return None, "Payment record not found."
+
+    updates = {}
+    prev_val = f"Amt: {payment.get('Payment Amount')}, Method: {payment.get('Payment Method')}, Status: {payment.get('Verification Status')}"
+
+    if amount is not None:
+        try:
+            amt_float = float(amount)
+            if amt_float <= 0:
+                return None, "Payment amount must be greater than zero."
+            updates["Payment Amount"] = f"{amt_float:.2f}"
+        except (ValueError, TypeError):
+            return None, "Invalid payment amount."
+
+    if method is not None and method.strip():
+        updates["Payment Method"] = method.strip()
+    if payment_date is not None and payment_date.strip():
+        updates["Payment Date"] = payment_date.strip()
+    if reference is not None:
+        updates["Payment Reference"] = reference.strip()
+    if notes is not None:
+        updates["Notes"] = notes.strip()
+    if verification_status in ["Verified", "Rejected", "Pending Verification"]:
+        updates["Verification Status"] = verification_status
+        if verification_status == "Verified":
+            updates["Verified By"] = admin_user
+            updates["Verification Date"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    if updates:
+        sheets_service.update_row("Payments", "Payment ID", payment_id, updates)
+        order_id = payment.get("Order ID")
+        summary = recalculate_order_payments(order_id)
+        new_val = f"Amt: {updates.get('Payment Amount', payment.get('Payment Amount'))}, Method: {updates.get('Payment Method', payment.get('Payment Method'))}, Status: {updates.get('Verification Status', payment.get('Verification Status'))}"
+        log_activity(
+            admin_user,
+            "PAYMENT_CORRECTED",
+            f"Payment {payment_id} corrected by {admin_user}.",
+            record_id=payment_id,
+            prev_val=prev_val,
+            new_val=new_val
+        )
+        return {"payment_id": payment_id, "order_summary": summary}, None
+    return {"payment_id": payment_id}, None
 
 
 def update_payment_verification(payment_id, new_status, verified_by, admin_notes=""):

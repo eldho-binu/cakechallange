@@ -162,9 +162,12 @@
           <div class="form-row">
             <div class="form-group">
               <label class="form-label" for="cust-location">Parish Ward / Location <span class="required">*</span></label>
-              <select id="cust-location" class="form-control" required>
+              <select id="cust-location" class="form-control" required onchange="toggleCustLocationOther()">
                 <option value="">-- Choose Ward --</option>
               </select>
+              <div id="cust-location-other-box" class="location-other-box" style="margin-top: 0.65rem; display: none;">
+                <input type="text" id="cust-location-other" class="form-control" placeholder="Please enter location name manually">
+              </div>
             </div>
 
             <div class="form-group">
@@ -386,10 +389,42 @@
       }, 300);
     }
 
+    function toggleCustLocationOther() {
+      const sel = document.getElementById("cust-location").value;
+      const box = document.getElementById("cust-location-other-box");
+      if (sel === "Others") {
+        box.style.display = "block";
+        document.getElementById("cust-location-other").focus();
+      } else {
+        box.style.display = "none";
+      }
+    }
+
     function selectCustomer(c) {
       document.getElementById("cust-name").value = c["Customer Name"] || "";
       document.getElementById("cust-phone").value = c["Phone Number"] || "";
-      document.getElementById("cust-location").value = c["Location"] || "";
+      const loc = c["Location"] || "";
+      const select = document.getElementById("cust-location");
+      const box = document.getElementById("cust-location-other-box");
+      const otherInput = document.getElementById("cust-location-other");
+
+      let opt = select.querySelector(`option[value="${loc}"]`);
+      if (loc && !opt) {
+        // If it's a custom/legacy location, add it dynamically or put it in Others
+        const newOpt = document.createElement("option");
+        newOpt.value = loc;
+        newOpt.textContent = loc;
+        select.appendChild(newOpt);
+        select.value = loc;
+        box.style.display = "none";
+      } else if (loc) {
+        select.value = loc;
+        if (loc === "Others") {
+          box.style.display = "block";
+        } else {
+          box.style.display = "none";
+        }
+      }
       document.getElementById("cust-address").value = c["Address"] || "";
       document.getElementById("cust-autocomplete-results").style.display = "none";
       UI.showToast(`Customer details filled for ${c["Customer Name"]}!`, "success");
@@ -538,10 +573,21 @@
     async function handleOrderSubmit(e) {
       e.preventDefault();
 
+      let locVal = document.getElementById("cust-location").value;
+      if (locVal === "Others") {
+        const customText = document.getElementById("cust-location-other").value.trim();
+        if (!customText) {
+          UI.showToast("Please enter your specific location name.", "error");
+          document.getElementById("cust-location-other").focus();
+          return;
+        }
+        locVal = customText;
+      }
+
       const customer = {
         name: document.getElementById("cust-name").value.trim(),
         phone: document.getElementById("cust-phone").value.trim(),
-        location: document.getElementById("cust-location").value,
+        location: locVal,
         address: document.getElementById("cust-address").value.trim()
       };
 

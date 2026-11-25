@@ -6,6 +6,56 @@
   <title>My Orders — Christmas Cake Challenge</title>
   <link rel="stylesheet" href="css/style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎂</text></svg>">
+  <style>
+    .edit-cake-row {
+      background: #FFFFFF;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 0.85rem;
+      position: relative;
+    }
+    .edit-cake-row:hover {
+      border-color: var(--green-primary);
+    }
+    .edit-cake-remove {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: #FFEBEE;
+      color: #C62828;
+      border: none;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .edit-cake-remove:hover { background: #FFCDD2; }
+    .weight-chip-group {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-top: 0.35rem;
+    }
+    .weight-chip {
+      padding: 0.35rem 0.75rem;
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      font-size: 0.85rem;
+      background: #FFFFFF;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .weight-chip.active {
+      background: var(--green-primary);
+      color: #FFFFFF;
+      border-color: var(--green-primary);
+      font-weight: 700;
+    }
+  </style>
 </head>
 <body>
 
@@ -31,7 +81,7 @@
   </header>
 
   <!-- Main Content -->
-  <main style="flex: 1; padding: 1.5rem 0 3rem;">
+  <main style="flex: 1 0 auto; padding: 1.5rem 0 3.5rem;">
     <div class="container">
 
       <!-- Action Bar -->
@@ -39,7 +89,7 @@
         <div>
           <h1 style="font-size: 1.6rem; color: var(--green-darkest); margin-bottom: 0.25rem;">My Orders</h1>
           <p style="color: var(--text-muted); font-size: 0.95rem; margin: 0;">
-            Track customer deliveries and collect balances.
+            Track customer deliveries, edit bookings, and collect remaining balances.
           </p>
         </div>
         <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
@@ -88,9 +138,11 @@
     </div>
   </main>
 
-  <!-- Order Details Modal -->
+  <!-- =========================================================================
+       1. View Order Details Modal
+       ========================================================================= -->
   <div id="order-details-modal" class="modal-overlay">
-    <div class="modal-card" style="max-width: 600px;">
+    <div class="modal-card" style="max-width: 640px;">
       <div class="modal-header">
         <h3 id="modal-order-title">Order Details</h3>
         <button class="modal-close" onclick="closeOrderModal()">&times;</button>
@@ -98,15 +150,110 @@
       <div class="modal-body" id="modal-order-body">
         <!-- Injected dynamically -->
       </div>
-      <div class="modal-footer">
+      <div class="modal-footer" id="modal-order-footer">
         <button class="btn btn-secondary" onclick="closeOrderModal()">Close</button>
       </div>
     </div>
   </div>
 
-  <!-- Record Additional Payment Modal -->
+  <!-- =========================================================================
+       2. Edit Order Modal
+       ========================================================================= -->
+  <div id="edit-order-modal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 680px;">
+      <div class="modal-header">
+        <h3 id="edit-modal-title">✏️ Edit Order</h3>
+        <button class="modal-close" onclick="closeEditModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="edit-modal-body">
+        <form id="edit-order-form" onsubmit="handleEditOrderSubmit(event)">
+          <input type="hidden" id="edit-order-id">
+          <input type="hidden" id="edit-already-paid-val" value="0">
+
+          <!-- Customer Details -->
+          <div style="background: var(--green-subtle); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.25rem;">
+            <h4 style="color: var(--green-darkest); margin-bottom: 0.75rem; font-size: 1.05rem;">👤 Customer Details</h4>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem;">
+              <div class="form-group" style="margin-bottom: 0.5rem;">
+                <label class="form-label" for="edit-cust-name">Customer Name <span class="required">*</span></label>
+                <input type="text" id="edit-cust-name" class="form-control" required>
+              </div>
+              <div class="form-group" style="margin-bottom: 0.5rem;">
+                <label class="form-label" for="edit-cust-phone">Phone Number <span class="required">*</span></label>
+                <input type="tel" id="edit-cust-phone" class="form-control" required>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem; margin-top: 0.5rem;">
+              <div class="form-group" style="margin-bottom: 0.5rem;">
+                <label class="form-label" for="edit-cust-location">Parish Ward / Location <span class="required">*</span></label>
+                <select id="edit-cust-location" class="form-control" required onchange="toggleEditLocationOther()">
+                  <!-- Dynamically populated -->
+                </select>
+                <div id="edit-cust-location-other-box" class="location-other-box" style="margin-top: 0.5rem; display: none;">
+                  <input type="text" id="edit-cust-location-other" class="form-control" placeholder="Enter location manually">
+                </div>
+              </div>
+              <div class="form-group" style="margin-bottom: 0.5rem;">
+                <label class="form-label" for="edit-cust-address">Delivery Address / House Name</label>
+                <input type="text" id="edit-cust-address" class="form-control" placeholder="House name, landmark">
+              </div>
+            </div>
+          </div>
+
+          <!-- Cake Items & Quantities -->
+          <div style="margin-bottom: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+              <h4 style="color: var(--green-darkest); margin: 0; font-size: 1.05rem;">🎂 Cake Varieties & Quantities</h4>
+              <button type="button" class="btn btn-outline btn-sm" onclick="addEditCakeRow()" style="padding: 0.4rem 0.85rem;">
+                ➕ Add Cake
+              </button>
+            </div>
+            
+            <div id="edit-cake-items-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
+              <!-- Dynamic rows -->
+            </div>
+          </div>
+
+          <!-- Recalculated Bill Box -->
+          <div style="background: #FAFCF9; border: 2px solid var(--border-subtle); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; font-size: 1.1rem; font-weight: 700; margin-bottom: 0.35rem;">
+              <span>Recalculated Total:</span>
+              <span id="edit-calc-total" style="color: var(--green-primary);">₹0.00</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.95rem; color: var(--text-muted); margin-bottom: 0.35rem;">
+              <span>Total Paid So Far:</span>
+              <span id="edit-calc-paid">₹0.00</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 1.1rem; font-weight: 700; color: var(--red-primary); border-top: 1px dashed var(--border-subtle); padding-top: 0.4rem;">
+              <span>Updated Remaining Balance:</span>
+              <span id="edit-calc-remaining">₹0.00</span>
+            </div>
+          </div>
+
+          <!-- Special Delivery Instructions -->
+          <div class="form-group" style="margin-bottom: 1.25rem;">
+            <label class="form-label" for="edit-delivery-notes">Delivery / Special Instructions</label>
+            <input type="text" id="edit-delivery-notes" class="form-control" placeholder="e.g. Deliver on Dec 24 evening">
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid var(--border-subtle); padding-top: 1rem;">
+            <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="btn-save-order-edit">
+              💾 Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       3. Record Additional Payment Modal
+       ========================================================================= -->
   <div id="add-payment-modal" class="modal-overlay">
-    <div class="modal-card" style="max-width: 460px;">
+    <div class="modal-card" style="max-width: 480px;">
       <div class="modal-header">
         <h3>💵 Record Payment</h3>
         <button class="modal-close" onclick="closePaymentModal()">&times;</button>
@@ -123,6 +270,11 @@
         <div class="form-group">
           <label class="form-label" for="modal-payment-amount">Amount Collected (₹) <span class="required">*</span></label>
           <input type="number" id="modal-payment-amount" class="form-control" placeholder="0" min="1" step="any" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="modal-payment-date">Payment Date <span class="required">*</span></label>
+          <input type="date" id="modal-payment-date" class="form-control" required>
         </div>
 
         <div class="form-group">
@@ -164,10 +316,13 @@
 
   <script>
     let allOrdersData = [];
+    let availableCakes = [];
+    let availableLocations = [];
     let currentFilter = 'all';
     let filterTimer = null;
+    let editCakeCounter = 0;
 
-    document.addEventListener("DOMContentLoaded", () => {
+    document.addEventListener("DOMContentLoaded", async () => {
       if (!Auth.requireRole("member")) return;
 
       const params = new URLSearchParams(window.location.search);
@@ -176,8 +331,26 @@
         document.getElementById("filter-search").value = searchParam;
       }
 
+      await loadPrerequisites();
       loadMyOrders();
     });
+
+    async function loadPrerequisites() {
+      try {
+        const [cakesRes, locsRes] = await Promise.all([
+          API.get("/api/cakes"),
+          API.get("/api/locations")
+        ]);
+        if (cakesRes.success && Array.isArray(cakesRes.data)) {
+          availableCakes = cakesRes.data;
+        }
+        if (locsRes.success && Array.isArray(locsRes.data)) {
+          availableLocations = locsRes.data;
+        }
+      } catch (e) {
+        console.error("Error loading prerequisites:", e);
+      }
+    }
 
     function debounceFilter() {
       clearTimeout(filterTimer);
@@ -242,12 +415,10 @@
       const search = (document.getElementById("filter-search").value || "").trim().toLowerCase();
 
       let filtered = allOrdersData.filter(o => {
-        // Tab filter
         const remaining = parseFloat(o['Remaining Amount'] || 0);
         if (currentFilter === 'unpaid' && remaining <= 0) return false;
         if (currentFilter === 'paid' && remaining > 0) return false;
 
-        // Search text
         if (search) {
           const matchId = (o['Order ID'] || '').toLowerCase().includes(search);
           const matchName = (o.customer_name || '').toLowerCase().includes(search);
@@ -321,6 +492,9 @@
             </div>
 
             <div class="order-card-actions">
+              <button type="button" class="btn btn-outline btn-sm" onclick="openEditOrder('${o['Order ID']}')">
+                ✏️ Edit Order
+              </button>
               <button type="button" class="btn btn-secondary btn-sm" onclick="viewOrderDetails('${o['Order ID']}')">
                 👁️ View Details
               </button>
@@ -337,10 +511,14 @@
       }).join("");
     }
 
+    // =========================================================================
+    // View Order Details
+    // =========================================================================
     async function viewOrderDetails(orderId) {
       const modal = document.getElementById("order-details-modal");
       const title = document.getElementById("modal-order-title");
       const body = document.getElementById("modal-order-body");
+      const footer = document.getElementById("modal-order-footer");
 
       title.textContent = `Order #${orderId}`;
       body.innerHTML = "<p style='text-align:center; padding:1.5rem;'>Loading details...</p>";
@@ -404,26 +582,45 @@
               </div>
             </div>
 
-            ${payments.length > 0 ? `
-              <div>
-                <h4 style="margin-bottom: 0.5rem; color: var(--green-darkest);">💵 Payments Recorded</h4>
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <h4 style="color: var(--green-darkest); margin: 0;">💵 Payment History</h4>
+                ${parseFloat(o['Remaining Amount']) > 0 ? `
+                  <button class="btn btn-primary btn-sm" onclick="closeOrderModal(); openAddPayment('${orderId}', '${o['Remaining Amount']}')">
+                    ➕ Add Payment
+                  </button>
+                ` : ''}
+              </div>
+              ${payments.length > 0 ? `
                 <div class="table-responsive">
                   <table class="table" style="font-size: 0.85rem;">
-                    <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Status</th></tr></thead>
+                    <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Ref/Note</th><th>Status</th></tr></thead>
                     <tbody>
                       ${payments.map(p => `
                         <tr>
-                          <td>${p['Payment Date']}</td>
+                          <td>${p['Payment Date'] || '-'}</td>
                           <td><strong>${UI.formatINR(p['Payment Amount'])}</strong></td>
                           <td>${p['Payment Method']}</td>
+                          <td><small>${p['Payment Reference'] || p['Notes'] || '-'}</small></td>
                           <td>${UI.getVerificationBadge(p['Verification Status'])}</td>
                         </tr>
                       `).join("")}
                     </tbody>
                   </table>
                 </div>
+              ` : '<p style="font-size: 0.9rem; color: var(--text-muted);">No payments recorded yet.</p>'}
+            </div>
+
+            ${o['Delivery or Collection Details'] ? `
+              <div style="margin-top: 1rem; background: #FFF9E6; padding: 0.75rem 1rem; border-radius: var(--radius-sm); border-left: 3px solid var(--gold-primary);">
+                <strong>Delivery Notes:</strong> ${o['Delivery or Collection Details']}
               </div>
-            ` : '<p style="font-size: 0.9rem; color: var(--text-muted);">No payment recorded yet.</p>'}
+            ` : ''}
+          `;
+
+          footer.innerHTML = `
+            <button class="btn btn-outline" onclick="closeOrderModal(); openEditOrder('${orderId}')">✏️ Edit Order</button>
+            <button class="btn btn-secondary" onclick="closeOrderModal()">Close</button>
           `;
         } else {
           body.innerHTML = `<p style="color: red;">${res.error || 'Failed to load details.'}</p>`;
@@ -437,12 +634,345 @@
       document.getElementById("order-details-modal").classList.remove("active");
     }
 
+    // =========================================================================
+    // Edit Order Logic
+    // =========================================================================
+    function toggleEditLocationOther() {
+      const sel = document.getElementById("edit-cust-location").value;
+      const box = document.getElementById("edit-cust-location-other-box");
+      if (sel === "Others") {
+        box.style.display = "block";
+        document.getElementById("edit-cust-location-other").focus();
+      } else {
+        box.style.display = "none";
+      }
+    }
+
+    async function openEditOrder(orderId) {
+      const modal = document.getElementById("edit-order-modal");
+      document.getElementById("edit-order-id").value = orderId;
+      document.getElementById("edit-modal-title").textContent = `✏️ Edit Order #${orderId}`;
+      document.getElementById("edit-cake-items-list").innerHTML = "<p style='text-align:center;'>Loading order data...</p>";
+      modal.classList.add("active");
+
+      // Ensure catalogs loaded
+      if (availableCakes.length === 0 || availableLocations.length === 0) {
+        await loadPrerequisites();
+      }
+
+      // Populate locations dropdown
+      const locSelect = document.getElementById("edit-cust-location");
+      locSelect.innerHTML = availableLocations.map(l => `<option value="${l['Location Name']}">${l['Location Name']}</option>`).join("");
+
+      try {
+        const res = await API.get(`/api/orders/${orderId}`);
+        if (!res.success || !res.data) {
+          UI.showToast(res.error || "Failed to load order.", "error");
+          closeEditModal();
+          return;
+        }
+
+        const d = res.data;
+        const o = d.order;
+        const c = d.customer;
+        const items = d.items || [];
+
+        // Customer Details
+        document.getElementById("edit-cust-name").value = c["Customer Name"] || "";
+        document.getElementById("edit-cust-phone").value = c["Phone Number"] || "";
+        document.getElementById("edit-cust-address").value = c["Address"] || "";
+        document.getElementById("edit-delivery-notes").value = o["Delivery or Collection Details"] || "";
+
+        // Location
+        const custLoc = c["Location"] || "";
+        let optExists = locSelect.querySelector(`option[value="${custLoc}"]`);
+        const otherBox = document.getElementById("edit-cust-location-other-box");
+        const otherInput = document.getElementById("edit-cust-location-other");
+
+        if (custLoc && !optExists) {
+          // Custom / Legacy location
+          const newOpt = document.createElement("option");
+          newOpt.value = custLoc;
+          newOpt.textContent = `${custLoc} (Legacy)`;
+          locSelect.appendChild(newOpt);
+          locSelect.value = custLoc;
+          otherBox.style.display = "none";
+        } else if (custLoc === "Others") {
+          locSelect.value = "Others";
+          otherBox.style.display = "block";
+          otherInput.value = "";
+        } else if (custLoc) {
+          locSelect.value = custLoc;
+          otherBox.style.display = "none";
+        }
+
+        // Paid amount
+        const paidAmt = parseFloat(o["Total Amount Paid"] || 0);
+        document.getElementById("edit-already-paid-val").value = paidAmt;
+        document.getElementById("edit-calc-paid").textContent = UI.formatINR(paidAmt);
+
+        // Build items
+        const itemsList = document.getElementById("edit-cake-items-list");
+        itemsList.innerHTML = "";
+        editCakeCounter = 0;
+
+        if (items.length > 0) {
+          items.forEach(it => {
+            addEditCakeRow({
+              cake_id: it["Cake ID"],
+              weight: it["Weight"],
+              qty: parseInt(it["Quantity"]) || 1
+            });
+          });
+        } else {
+          addEditCakeRow();
+        }
+
+        recalcEditOrderBill();
+
+      } catch (err) {
+        UI.showToast("Failed to fetch order details.", "error");
+        closeEditModal();
+      }
+    }
+
+    function addEditCakeRow(initialData = null) {
+      editCakeCounter++;
+      const rowId = `edit-row-${editCakeCounter}`;
+      const container = document.getElementById("edit-cake-items-list");
+
+      const card = document.createElement("div");
+      card.className = "edit-cake-row";
+      card.id = rowId;
+
+      card.innerHTML = `
+        <button type="button" class="edit-cake-remove" onclick="removeEditCakeRow('${rowId}')" title="Remove">&times;</button>
+        <div style="padding-right: 32px;">
+          <div class="form-group" style="margin-bottom: 0.5rem;">
+            <label class="form-label" style="font-size: 0.85rem;">Cake Variety</label>
+            <select class="form-control edit-cake-select" onchange="onEditCakeSelected('${rowId}')" style="font-size: 0.95rem;">
+              <option value="">-- Choose Cake --</option>
+              ${availableCakes.map(c => `
+                <option value="${c.cake_id}" data-weights='${JSON.stringify(c.available_weights || [])}' data-prices='${JSON.stringify(c.prices || {})}'>
+                  ${c.cake_name}
+                </option>
+              `).join("")}
+            </select>
+          </div>
+
+          <div class="edit-weight-container" style="margin-bottom: 0.65rem;">
+            <label class="form-label" style="font-size: 0.85rem; margin-bottom: 0.2rem;">Choose Weight</label>
+            <div class="weight-chip-group edit-weight-chips">
+              <span style="font-size: 0.82rem; color: var(--text-muted);">Please select a cake above</span>
+            </div>
+            <input type="hidden" class="edit-selected-weight">
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--border-subtle); padding-top: 0.5rem; margin-top: 0.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-size: 0.85rem; font-weight: 600;">Qty:</span>
+              <div class="quantity-stepper">
+                <button type="button" class="stepper-btn" onclick="stepEditQty('${rowId}', -1)" style="width: 32px; height: 32px; font-size: 1.1rem;">−</button>
+                <input type="number" class="stepper-val edit-qty-val" value="${initialData ? initialData.qty : 1}" min="1" max="99" readonly style="width: 38px; font-size: 0.95rem;">
+                <button type="button" class="stepper-btn" onclick="stepEditQty('${rowId}', 1)" style="width: 32px; height: 32px; font-size: 1.1rem;">+</button>
+              </div>
+            </div>
+            <div style="text-align: right;">
+              <span style="font-size: 0.82rem; color: var(--text-muted); display: block;">Subtotal</span>
+              <strong class="edit-row-subtotal" style="color: var(--green-primary); font-size: 1.05rem;">₹0.00</strong>
+            </div>
+          </div>
+        </div>
+      `;
+
+      container.appendChild(card);
+
+      if (initialData) {
+        const select = card.querySelector(".edit-cake-select");
+        select.value = initialData.cake_id;
+        onEditCakeSelected(rowId, initialData.weight);
+      }
+    }
+
+    function onEditCakeSelected(rowId, preselectedWeight = null) {
+      const card = document.getElementById(rowId);
+      if (!card) return;
+
+      const select = card.querySelector(".edit-cake-select");
+      const chipsContainer = card.querySelector(".edit-weight-chips");
+      const hiddenWeight = card.querySelector(".edit-selected-weight");
+
+      const opt = select.options[select.selectedIndex];
+      if (!opt || !opt.value) {
+        chipsContainer.innerHTML = '<span style="font-size: 0.82rem; color: var(--text-muted);">Please select a cake above</span>';
+        hiddenWeight.value = "";
+        recalcEditOrderBill();
+        return;
+      }
+
+      const weights = JSON.parse(opt.getAttribute("data-weights") || "[]");
+      const prices = JSON.parse(opt.getAttribute("data-prices") || "{}");
+
+      chipsContainer.innerHTML = "";
+      let firstWeight = preselectedWeight || (weights.length > 0 ? weights[0] : "");
+
+      weights.forEach(w => {
+        const price = prices[w] ? `(₹${prices[w]})` : "";
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = `weight-chip ${w === firstWeight ? 'active' : ''}`;
+        chip.textContent = `${w} ${price}`;
+        chip.onclick = () => {
+          chipsContainer.querySelectorAll(".weight-chip").forEach(c => c.classList.remove("active"));
+          chip.classList.add("active");
+          hiddenWeight.value = w;
+          recalcEditOrderBill();
+        };
+        chipsContainer.appendChild(chip);
+      });
+
+      hiddenWeight.value = firstWeight;
+      recalcEditOrderBill();
+    }
+
+    function stepEditQty(rowId, delta) {
+      const card = document.getElementById(rowId);
+      if (!card) return;
+      const input = card.querySelector(".edit-qty-val");
+      let val = parseInt(input.value) || 1;
+      val = Math.max(1, Math.min(99, val + delta));
+      input.value = val;
+      recalcEditOrderBill();
+    }
+
+    function removeEditCakeRow(rowId) {
+      const allRows = document.querySelectorAll(".edit-cake-row");
+      if (allRows.length <= 1) {
+        UI.showToast("An order must contain at least one cake.", "warning");
+        return;
+      }
+      const el = document.getElementById(rowId);
+      if (el) el.remove();
+      recalcEditOrderBill();
+    }
+
+    function recalcEditOrderBill() {
+      let grandTotal = 0;
+
+      document.querySelectorAll(".edit-cake-row").forEach(card => {
+        const select = card.querySelector(".edit-cake-select");
+        const hiddenWeight = card.querySelector(".edit-selected-weight");
+        const qtyVal = parseInt(card.querySelector(".edit-qty-val").value) || 1;
+        const subtotalEl = card.querySelector(".edit-row-subtotal");
+
+        const opt = select.options[select.selectedIndex];
+        if (!opt || !opt.value || !hiddenWeight.value) {
+          subtotalEl.textContent = "₹0.00";
+          return;
+        }
+
+        const prices = JSON.parse(opt.getAttribute("data-prices") || "{}");
+        const unitPrice = parseFloat(prices[hiddenWeight.value] || 0);
+        const subtotal = unitPrice * qtyVal;
+        subtotalEl.textContent = UI.formatINR(subtotal);
+        grandTotal += subtotal;
+      });
+
+      const alreadyPaid = parseFloat(document.getElementById("edit-already-paid-val").value || 0);
+      const remaining = Math.max(0, grandTotal - alreadyPaid);
+
+      document.getElementById("edit-calc-total").textContent = UI.formatINR(grandTotal);
+      document.getElementById("edit-calc-remaining").textContent = UI.formatINR(remaining);
+    }
+
+    async function handleEditOrderSubmit(e) {
+      e.preventDefault();
+      const orderId = document.getElementById("edit-order-id").value;
+      const saveBtn = document.getElementById("btn-save-order-edit");
+
+      let locVal = document.getElementById("edit-cust-location").value;
+      if (locVal === "Others") {
+        const customText = document.getElementById("edit-cust-location-other").value.trim();
+        if (!customText) {
+          UI.showToast("Please enter the specific location name.", "error");
+          document.getElementById("edit-cust-location-other").focus();
+          return;
+        }
+        locVal = customText;
+      }
+
+      const customer = {
+        name: document.getElementById("edit-cust-name").value.trim(),
+        phone: document.getElementById("edit-cust-phone").value.trim(),
+        location: locVal,
+        address: document.getElementById("edit-cust-address").value.trim()
+      };
+
+      if (!customer.name || !customer.phone) {
+        UI.showToast("Customer Name and Phone Number are required.", "error");
+        return;
+      }
+
+      const items = [];
+      let missingSelection = false;
+      document.querySelectorAll(".edit-cake-row").forEach(card => {
+        const select = card.querySelector(".edit-cake-select");
+        const weight = card.querySelector(".edit-selected-weight").value;
+        const qty = parseInt(card.querySelector(".edit-qty-val").value) || 1;
+
+        if (!select.value || !weight) {
+          missingSelection = true;
+          return;
+        }
+        items.push({ cake_id: select.value, weight: weight, quantity: qty });
+      });
+
+      if (missingSelection || items.length === 0) {
+        UI.showToast("Please pick a cake variety and weight for each row.", "error");
+        return;
+      }
+
+      const deliveryNotes = document.getElementById("edit-delivery-notes").value.trim();
+
+      saveBtn.disabled = true;
+      saveBtn.textContent = "Saving...";
+
+      try {
+        const res = await API.put(`/api/orders/${orderId}`, {
+          customer: customer,
+          items: items,
+          delivery_notes: deliveryNotes
+        });
+
+        if (res.success) {
+          UI.showToast("Order updated successfully! 🎉", "success");
+          closeEditModal();
+          loadMyOrders();
+        } else {
+          UI.showToast(res.error || "Failed to update order.", "error");
+        }
+      } catch (err) {
+        UI.showToast("Connection error while updating order.", "error");
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = "💾 Save Changes";
+      }
+    }
+
+    function closeEditModal() {
+      document.getElementById("edit-order-modal").classList.remove("active");
+    }
+
+    // =========================================================================
+    // Record Additional Payment
+    // =========================================================================
     function openAddPayment(orderId, remaining) {
       document.getElementById("pay-modal-order-id").value = orderId;
       document.getElementById("pay-modal-order-id-label").textContent = '#' + orderId;
       document.getElementById("pay-modal-balance-label").textContent = UI.formatINR(remaining);
       document.getElementById("modal-payment-amount").value = remaining;
       document.getElementById("modal-payment-amount").max = remaining;
+      document.getElementById("modal-payment-date").value = new Date().toISOString().split("T")[0];
       document.getElementById("modal-payment-ref").value = "";
       document.getElementById("add-payment-modal").classList.add("active");
     }
@@ -454,6 +984,7 @@
     async function submitModalPayment() {
       const orderId = document.getElementById("pay-modal-order-id").value;
       const amount = parseFloat(document.getElementById("modal-payment-amount").value) || 0;
+      const date = document.getElementById("modal-payment-date").value;
       const method = document.getElementById("modal-payment-method").value;
       const ref = document.getElementById("modal-payment-ref").value.trim();
       const submitBtn = document.getElementById("btn-submit-modal-payment");
@@ -468,11 +999,11 @@
 
       try {
         const res = await API.post(`/api/orders/${orderId}/payments`, {
-          amount, method, reference: ref, notes: ""
+          amount, method, reference: ref, notes: "", date: date
         });
 
         if (res.success) {
-          UI.showToast("Payment recorded successfully!", "success");
+          UI.showToast("Payment recorded successfully! Pending admin verification.", "success");
           closePaymentModal();
           loadMyOrders();
         } else {

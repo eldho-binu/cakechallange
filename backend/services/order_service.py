@@ -369,3 +369,129 @@ def get_order_details(order_id, user_role="admin", user_id=None):
         "payments": payments,
         "custom_fields": custom_fields_formatted
     }, None
+
+
+def update_order_full(order_id, user_role, user_id, user_name, customer_data=None, items_data=None, delivery_notes=None, special_instructions=None, additional_payment=None):
+    """
+    Updates an existing order with full validation and recalculation:
+    1. Validates permissions: members can ONLY edit their own orders.
+    2. Updates customer record if provided (preserving or updating location).
+    3. If items_data provided:
+       - Recalculates items and total order price using official Cake_Settings.
+       - Replaces Order_Items records using replace_rows_by_column.
+       - Recalculates remaining balance and payment status.
+    4. If additional_payment provided, records the payment.
+    5. Re-tallies order payments and balances.
+    6. If member edited items/totals on a Verified order, resets Verification Status to 'Pending Verification'.
+    7. Logs changes in Activity_Logs.
+    """
+    order = sheets_service.find_record("Orders", "Order ID", order_id)
+    if not order:
+        return None, "Order not found."
+
+    is_admin = (user_role == "admin")
+    if not is_admin:
+        if str(order.get("Member ID", "")).strip() != str(user_id).strip():
+            return None, "Access denied. You can only edit your own orders."
+
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # 1. Update customer if data supplied
+    cust_id = order.get("Customer ID")
+    if customer_data and isinstance(customer_data, dict):
+        cust_updates = {"Updated Date": now_str}
+        if "name" in customer_data and customer_data["name"].strip():
+            cust_updates["Customer Name"] = customer_data["name"].strip()
+        if "phone" in customer_data and customer_data["phone"].strip():
+            cust_updates["Phone Number"] = customer_data["phone"].strip()
+        if "alt_phone" in customer_data:
+            cust_updates["Alternate Phone Number"] = customer_data["alt_phone"].strip()
+        if "address" in customer_data:
+            cust_updates["Address"] = customer_data["address"].strip()
+        if "location" in customer_data and customer_data["location"].strip():
+            cust_updates["Location"] = customer_data["location"].strip()
+        if "landmark" in customer_data:
+            cust_updates["Landmark"] = customer_data["landmark"].strip()
+        if cust_id:
+            sheets_service.update_row("Customers", "Customer ID", cust_id, cust_updates)
+
+    # 2. Update items and recalculate totals if items supplied
+    new_order_total = None
+    items_changed = False
+    if items_data is not None and isinstance(items_data, list):
+        if len(items_data) == 0:
+            return None, "Order must contain at least one cake item."
+        validated_items, calculated_total, err = validate_and_calculate_items(items_data)
+        if err:
+            return None, err
+
+        new_order_total = calculated_total
+        items_changed = True
+
+        new_item_rows = []
+        for it in validated_items:
+            new_item_rows.append({
+                "Order Item ID": f"ITEM-{uuid.uuid4().hex[:8].upper()}",
+                "Order ID": order_id,
+                "Cake ID": it["cake_id"],
+                "Cake Name": it["cake_name"],
+                "Weight": it["weight"],
+                "Quantity": str(it["quantity"]),
+                "Unit Price": f"{it['unit_price']:.2f}",
+                "Subtotal": f"{it['subtotal']:.2f}",
+                "Historical Price": f"{it['historical_price']:.2f}"
+            })
+
+        sheets_service.replace_rows_by_column("Order_Items", "Order ID", order_id, new_item_rows)
+
+    # 3. Update order fields
+    order_updates = {"Updated Date": now_str}
+    if new_order_total is not None:
+        order_updates["Total Amount"] = f"{new_order_total:.2f}"
+    if delivery_notes is not None:
+        order_updates["Delivery or Collection Details"] = delivery_notes.strip()
+    if special_instructions is not None:
+        order_updates["Special Instructions"] = special_instructions.strip()
+
+    if not is_admin and order.get("Verification Status") == "Verified" and (items_changed or customer_data):
+        order_updates["Verification Status"] = "Pending Verification"
+
+    sheets_service.update_row("Orders", "Order ID", order_id, order_updates)
+
+    # 4. Record additional payment if included in edit
+    if additional_payment and isinstance(additional_payment, dict):
+        try:
+            pay_amt = float(additional_payment.get("amount", 0))
+            if pay_amt > 0:
+                from .payment_service import record_payment
+                record_payment(
+                    order_id=order_id,
+                    member_id=order.get("Member ID"),
+                    amount=pay_amt,
+                    payment_method=additional_payment.get("method", "Cash"),
+                    recorded_by=user_name,
+                    reference=additional_payment.get("reference", ""),
+                    notes=additional_payment.get("notes", "Recorded during order update"),
+                    verification_status="Verified" if is_admin else "Pending Verification",
+                    payment_date=additional_payment.get("date")
+                )
+        except (ValueError, TypeError):
+            pass
+
+    # 5. Re-tally order payments and remaining balance
+    from .payment_service import recalculate_order_payments
+    summary = recalculate_order_payments(order_id)
+
+    # 6. Log activity
+    log_activity(
+        user_name,
+        "ORDER_EDITED",
+        f"Order {order_id} edited by {user_name} ({user_role}). Total updated to ₹{summary.get('total_amount', 0):.2f}.",
+        record_id=order_id,
+        new_val=f"Total: ₹{summary.get('total_amount', 0):.2f}, Remaining: ₹{summary.get('remaining_amount', 0):.2f}"
+    )
+
+    return {
+        "order_id": order_id,
+        "order_summary": summary
+    }, None
