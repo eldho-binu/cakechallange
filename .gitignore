@@ -25,8 +25,10 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Local credentials
+# Local credentials and backups
 service_account.json
 credentials.json
 backend/service_account.json.json
 backend/.env.production
+backend/backup_*.json
+backend/reset_database.py
