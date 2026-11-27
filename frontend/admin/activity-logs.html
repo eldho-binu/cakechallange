@@ -56,14 +56,26 @@
 
         <!-- Filter Bar -->
         <div class="filter-bar">
-          <div class="filter-item" style="flex: 2; min-width: 240px;">
-            <input type="text" id="log-filter-search" class="form-control" placeholder="🔍 Search by User, Description, Record ID..." oninput="debounceFilter()">
+          <div class="filter-item" style="flex: 2; min-width: 200px;">
+            <input type="text" id="log-filter-search" class="form-control" placeholder="🔍 Search user, description, record ID..." oninput="debounceFilter()">
+          </div>
+
+          <div class="filter-item">
+            <select id="log-filter-actor" class="form-control" onchange="loadLogs()">
+              <option value="all">All Users & Admins</option>
+              <option value="master">👑 Master Administrator</option>
+              <option value="subadmins">🛡️ All Subadmins (Coordinators)</option>
+              <option value="sub-001">🛡️ Subadmin 1 (SUB-001)</option>
+              <option value="sub-002">🛡️ Subadmin 2 (SUB-002)</option>
+              <option value="sub-003">🛡️ Subadmin 3 (SUB-003)</option>
+              <option value="sub-004">🛡️ Subadmin 4 (SUB-004)</option>
+            </select>
           </div>
 
           <div class="filter-item">
             <select id="log-filter-action" class="form-control" onchange="loadLogs()">
               <option value="all">All Action Types</option>
-              <option value="LOGIN">Admin Login</option>
+              <option value="LOGIN">Admin / Subadmin Login</option>
               <option value="MEMBER_LOGIN">Member Login</option>
               <option value="ORDER_CREATED">Order Created</option>
               <option value="ORDER_UPDATED">Order Updated</option>
@@ -71,6 +83,8 @@
               <option value="PAYMENT_VERIFIED">Payment Verified</option>
               <option value="MEMBER_CREATED">Member Created</option>
               <option value="MEMBER_APPROVED">Member Approved</option>
+              <option value="SUBADMIN_CREATED">Subadmin Created</option>
+              <option value="SUBADMIN_UPDATED">Subadmin Updated</option>
               <option value="EXCEL_EXPORT">Excel Download</option>
             </select>
           </div>
@@ -142,6 +156,15 @@
     document.addEventListener("DOMContentLoaded", () => {
       if (!Auth.requireRole("admin")) return;
       UI.checkSystemHealth();
+
+      // Check URL params for initial actor filter
+      const urlParams = new URLSearchParams(window.location.search);
+      const actorParam = urlParams.get("actor");
+      if (actorParam) {
+        const actorSelect = document.getElementById("log-filter-actor");
+        if (actorSelect) actorSelect.value = actorParam;
+      }
+
       loadLogs();
     });
 
@@ -152,6 +175,7 @@
 
     function resetLogFilters() {
       document.getElementById("log-filter-search").value = "";
+      document.getElementById("log-filter-actor").value = "all";
       document.getElementById("log-filter-action").value = "all";
       document.getElementById("log-filter-from").value = "";
       document.getElementById("log-filter-to").value = "";
@@ -162,6 +186,7 @@
       const tbody = document.getElementById("logs-tbody");
       const countBadge = document.getElementById("log-count-badge");
       const search = document.getElementById("log-filter-search").value.trim();
+      const actor = document.getElementById("log-filter-actor").value;
       const action_type = document.getElementById("log-filter-action").value;
       const date_from = document.getElementById("log-filter-from").value;
       const date_to = document.getElementById("log-filter-to").value;
@@ -169,6 +194,7 @@
       try {
         const res = await API.get("/api/admin/activity-logs", {
           search,
+          actor,
           action_type,
           date_from,
           date_to
@@ -179,22 +205,33 @@
           countBadge.textContent = `${logs.length} log entry(ies)`;
 
           if (logs.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem;">No logs found.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">No activity logs matching these filters.</td></tr>`;
             return;
           }
 
-          tbody.innerHTML = logs.map(l => `
-            <tr>
-              <td><strong>${l['Log ID']}</strong></td>
-              <td><strong>${l['Admin ID or Username']}</strong></td>
-              <td><span style="background: var(--bg-muted); font-size: 0.8rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 4px;">${l['Action Type']}</span></td>
-              <td>${l['Action Description']}</td>
-              <td>${l['Related Record ID'] ? `<code>${l['Related Record ID']}</code>` : '-'}</td>
-              <td><small>${l['Previous Value'] || '-'}</small></td>
-              <td><small>${l['New Value'] || '-'}</small></td>
-              <td>${UI.formatDate(l['Date'])} <small style="color: var(--text-muted);">${l['Time'] || ''}</small></td>
-            </tr>
-          `).join("");
+          tbody.innerHTML = logs.map(l => {
+            const rawUser = l['Admin ID or Username'] || 'System';
+            let userDisplay = `<strong>${rawUser}</strong>`;
+            
+            if (rawUser.toLowerCase().startsWith("subadmin")) {
+              userDisplay = `<span style="background: #EDE7F6; color: #4A148C; font-weight: 700; padding: 3px 8px; border-radius: 4px; border: 1px solid #D1C4E9; display: inline-flex; align-items: center; gap: 4px; font-size: 0.85rem;">🛡️ ${rawUser}</span>`;
+            } else if (rawUser.toLowerCase().includes("master") || rawUser.toLowerCase() === "admin") {
+              userDisplay = `<span style="background: #E8F5E9; color: #1B5E20; font-weight: 700; padding: 3px 8px; border-radius: 4px; border: 1px solid #C8E6C9; display: inline-flex; align-items: center; gap: 4px; font-size: 0.85rem;">👑 Master Admin</span>`;
+            }
+
+            return `
+              <tr>
+                <td><small style="font-family: monospace;">${l['Log ID']}</small></td>
+                <td>${userDisplay}</td>
+                <td><span style="background: var(--bg-muted); font-size: 0.8rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 4px;">${l['Action Type']}</span></td>
+                <td>${l['Action Description']}</td>
+                <td>${l['Related Record ID'] ? `<code>${l['Related Record ID']}</code>` : '-'}</td>
+                <td><small>${l['Previous Value'] || '-'}</small></td>
+                <td><small>${l['New Value'] || '-'}</small></td>
+                <td>${UI.formatDate(l['Date'])} <small style="color: var(--text-muted);">${l['Time'] || ''}</small></td>
+              </tr>
+            `;
+          }).join("");
         }
       } catch (e) {
         tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: red;">Failed to load logs.</td></tr>`;

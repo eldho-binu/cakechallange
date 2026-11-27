@@ -171,14 +171,15 @@
             <div style="font-size: 2.2rem; margin-bottom: 0.25rem;">🛡️</div>
             <h2 style="font-size: 1.4rem; margin-bottom: 0.35rem;">Administrator Portal</h2>
             <p style="font-size: 0.95rem; color: var(--text-muted);">
-              For Church Coordinators and Admins.
+              For Master Administrator and Subadmin Coordinators.
             </p>
           </div>
 
           <form onsubmit="handleAdminLogin(event)">
             <div class="form-group">
-              <label class="form-label" for="admin-email">Admin Email <span class="required">*</span></label>
-              <input type="email" id="admin-email" class="form-control" value="margregoriousyouthpancode123@gmail.com" required>
+              <label class="form-label" for="admin-email">Admin / Subadmin Login <span class="required">*</span></label>
+              <input type="text" id="admin-email" class="form-control" placeholder="Email or Subadmin ID" value="margregoriousyouthpancode123@gmail.com" required>
+              <div class="form-hint">Sign in as Master Admin or 1 of the 4 Subadmins.</div>
             </div>
 
             <div class="form-group">

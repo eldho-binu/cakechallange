@@ -62,11 +62,38 @@ SHEET_SCHEMAS = {
     ],
     "Settings": [
         "Setting ID", "Setting Name", "Setting Value", "Description", "Updated Date"
+    ],
+    "Subadmins": [
+        "Subadmin ID", "Name", "Email", "Password Hash", 
+        "Phone Number", "Role", "Account Status", 
+        "Date Created", "Last Login", "Notes"
     ]
 }
 
 # Initial seed data for defaults when tabs are freshly created
 DEFAULT_SEEDS = {
+    "Subadmins": [
+        [
+            "SUB-001", "Subadmin 1", "subadmin1@pancode.org", 
+            "pbkdf2:sha256:100000$9zKO77OKd37JoBIx$38e3ee180d9f93286943e4f5a53d650813ab883badd28abddca6b2c09d8cd420",
+            "", "subadmin", "Active", datetime.now().strftime("%Y-%m-%d"), "", "Subadmin Slot 1"
+        ],
+        [
+            "SUB-002", "Subadmin 2", "subadmin2@pancode.org", 
+            "pbkdf2:sha256:100000$9zKO77OKd37JoBIx$38e3ee180d9f93286943e4f5a53d650813ab883badd28abddca6b2c09d8cd420",
+            "", "subadmin", "Active", datetime.now().strftime("%Y-%m-%d"), "", "Subadmin Slot 2"
+        ],
+        [
+            "SUB-003", "Subadmin 3", "subadmin3@pancode.org", 
+            "pbkdf2:sha256:100000$9zKO77OKd37JoBIx$38e3ee180d9f93286943e4f5a53d650813ab883badd28abddca6b2c09d8cd420",
+            "", "subadmin", "Active", datetime.now().strftime("%Y-%m-%d"), "", "Subadmin Slot 3"
+        ],
+        [
+            "SUB-004", "Subadmin 4", "subadmin4@pancode.org", 
+            "pbkdf2:sha256:100000$9zKO77OKd37JoBIx$38e3ee180d9f93286943e4f5a53d650813ab883badd28abddca6b2c09d8cd420",
+            "", "subadmin", "Active", datetime.now().strftime("%Y-%m-%d"), "", "Subadmin Slot 4"
+        ]
+    ],
     "Cake_Settings": [
         [
             "CAKE-001", "Plum Cake (Traditional Christmas)", 
@@ -194,6 +221,7 @@ class GoogleSheetsService:
                     self.service = build("sheets", "v4", credentials=creds, cache_discovery=False)
                     self._ensure_all_sheets()
                     self.sync_default_locations()
+                    self.sync_default_subadmins()
                     self._initialized = True
                     self._init_error = None
                     logger.info(f"Connected to Google Sheets: {self.spreadsheet_id}")
@@ -231,7 +259,7 @@ class GoogleSheetsService:
             "error": self._init_error
         }
 
-    def _retry_api_call(self, func, max_retries=3, initial_delay=1.0):
+    def _retry_api_call(self, func, max_retries=5, initial_delay=1.5):
         """Executes an API call with thread locking and exponential backoff on transient errors."""
         with self._lock:
             delay = initial_delay
@@ -241,9 +269,14 @@ class GoogleSheetsService:
                     return func()
                 except Exception as e:
                     last_exception = e
+                    err_str = str(e).lower()
                     logger.warning(f"Google Sheets API call failed (attempt {attempt + 1}/{max_retries}): {e}")
-                    time.sleep(delay)
-                    delay *= 2
+                    if "429" in err_str or "rate_limit" in err_str or "quota" in err_str:
+                        time.sleep(max(delay, 5.0))
+                        delay = max(delay * 2, 6.0)
+                    else:
+                        time.sleep(delay)
+                        delay *= 2
             raise last_exception
 
     def _ensure_all_sheets(self):
@@ -365,6 +398,9 @@ class GoogleSheetsService:
             return records
         except Exception as e:
             logger.error(f"Error reading records from {sheet_name}: {e}")
+            if sheet_name in self._cache:
+                logger.info(f"Returning cached records for {sheet_name} due to API error.")
+                return copy.deepcopy(self._cache[sheet_name][1])
             return []
 
     def append_row(self, sheet_name, row_dict_or_list):
@@ -628,6 +664,66 @@ class GoogleSheetsService:
                 logger.info(f"Added {len(to_add)} missing canonical locations to Locations sheet.")
         except Exception as e:
             logger.error(f"Error syncing default locations: {e}")
+
+    def sync_default_subadmins(self):
+        """Ensures 4 default subadmin slots exist in Subadmins tab if empty."""
+        try:
+            existing = self.get_all_records("Subadmins")
+            if not existing:
+                default_subadmins = [
+                    {
+                        "Subadmin ID": "SUB-001",
+                        "Name": "Subadmin 1",
+                        "Email": "subadmin1@pancode.org",
+                        "Password Hash": "pbkdf2:sha256:100000$9zKO77OKd37JoBIx$38e3ee180d9f93286943e4f5a53d650813ab883badd28abddca6b2c09d8cd420",
+                        "Phone Number": "",
+                        "Role": "subadmin",
+                        "Account Status": "Active",
+                        "Date Created": datetime.now().strftime("%Y-%m-%d"),
+                        "Last Login": "",
+                        "Notes": "Subadmin Slot 1"
+                    },
+                    {
+                        "Subadmin ID": "SUB-002",
+                        "Name": "Subadmin 2",
+                        "Email": "subadmin2@pancode.org",
+                        "Password Hash": "pbkdf2:sha256:100000$9zKO77OKd37JoBIx$38e3ee180d9f93286943e4f5a53d650813ab883badd28abddca6b2c09d8cd420",
+                        "Phone Number": "",
+                        "Role": "subadmin",
+                        "Account Status": "Active",
+                        "Date Created": datetime.now().strftime("%Y-%m-%d"),
+                        "Last Login": "",
+                        "Notes": "Subadmin Slot 2"
+                    },
+                    {
+                        "Subadmin ID": "SUB-003",
+                        "Name": "Subadmin 3",
+                        "Email": "subadmin3@pancode.org",
+                        "Password Hash": "pbkdf2:sha256:100000$9zKO77OKd37JoBIx$38e3ee180d9f93286943e4f5a53d650813ab883badd28abddca6b2c09d8cd420",
+                        "Phone Number": "",
+                        "Role": "subadmin",
+                        "Account Status": "Active",
+                        "Date Created": datetime.now().strftime("%Y-%m-%d"),
+                        "Last Login": "",
+                        "Notes": "Subadmin Slot 3"
+                    },
+                    {
+                        "Subadmin ID": "SUB-004",
+                        "Name": "Subadmin 4",
+                        "Email": "subadmin4@pancode.org",
+                        "Password Hash": "pbkdf2:sha256:100000$9zKO77OKd37JoBIx$38e3ee180d9f93286943e4f5a53d650813ab883badd28abddca6b2c09d8cd420",
+                        "Phone Number": "",
+                        "Role": "subadmin",
+                        "Account Status": "Active",
+                        "Date Created": datetime.now().strftime("%Y-%m-%d"),
+                        "Last Login": "",
+                        "Notes": "Subadmin Slot 4"
+                    }
+                ]
+                self.append_rows("Subadmins", default_subadmins)
+                logger.info("Initialized 4 default Subadmin slots in Subadmins sheet.")
+        except Exception as e:
+            logger.error(f"Error syncing default subadmins: {e}")
 
     def find_record(self, sheet_name, col_name, value):
         """Returns the first matching record dict or None."""

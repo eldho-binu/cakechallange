@@ -4,6 +4,7 @@ Automated End-to-End Integration Test Suite for Christmas Cake Challenge
 import os
 import sys
 import json
+import time
 
 # Ensure backend root is on sys.path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -277,8 +278,76 @@ def run_tests():
         assert res.status_code == 200
         print(f"✓ [TEST 21] Admin payment correction API passed (Payment ID: {first_pid}).")
 
+    # 21. Master Admin Subadmin Management (4 Subadmins Oversight)
+    res = client.get("/api/admin/subadmins", headers=admin_headers)
+    assert res.status_code == 200, f"Failed to list subadmins: {res.status_code}"
+    subadmins_list = res.get_json()["data"]
+    assert len(subadmins_list) <= 4, f"Subadmin limit exceeded: {len(subadmins_list)}"
+    print(f"✓ [TEST 22] Master Admin Subadmins Listing passed ({len(subadmins_list)} subadmins configured).")
+
+    # 22. Subadmin Authentication & Role Verification
+    res = client.post("/api/auth/admin-login", json={
+        "email": "subadmin1@pancode.org",
+        "password": "Subadmin@Cake2026!"
+    })
+    assert res.status_code == 200, f"Subadmin login failed: {res.status_code}"
+    sub1_data = res.get_json()["data"]
+    assert sub1_data["user"]["role"] == "admin"
+    assert sub1_data["user"]["admin_type"] == "subadmin"
+    sub1_token = sub1_data["token"]
+    sub1_headers = {"Authorization": f"Bearer {sub1_token}"}
+    print("✓ [TEST 23] Subadmin 1 authentication passed (Role: admin, Type: subadmin).")
+
+    # 23. Subadmin Permission Boundaries (Blocked from Master-only endpoints)
+    # Subadmin tries to access subadmins management -> 403 Forbidden
+    res = client.get("/api/admin/subadmins", headers=sub1_headers)
+    assert res.status_code == 403, f"Security leak! Subadmin accessed Master Admin subadmins management: {res.status_code}"
+
+    # Subadmin tries to change admin master password -> 403 Forbidden
+    res = client.put("/api/admin/settings/password", headers=sub1_headers, json={"new_password": "HackedPassword123!"})
+    assert res.status_code == 403, f"Security leak! Subadmin accessed master password update: {res.status_code}"
+
+    # Subadmin tries to create a cake variety -> 403 Forbidden
+    res = client.post("/api/admin/cakes", headers=sub1_headers, json={
+        "name": "Unauthorized Cake",
+        "weights": ["1 kg"],
+        "prices": {"1 kg": 999}
+    })
+    assert res.status_code == 403, f"Security leak! Subadmin was able to modify cake catalog: {res.status_code}"
+    print("✓ [TEST 24] Subadmin permission boundaries verified (Master-only operations correctly returned 403).")
+
+    # 24. Subadmin Activity Auditing & Master Admin Visibility
+    # Subadmin performs an allowed action (e.g., updates Sarah's order status to 'Processing')
+    time.sleep(1.0)
+    res = client.put(f"/api/admin/orders/{order_id}/status", headers=sub1_headers, json={
+        "order_status": "Processing"
+    })
+    assert res.status_code == 200, f"Subadmin order status update failed: {res.status_code}"
+
+    # Verify that Master Admin can see this exact action in Subadmin 1's activity log
+    time.sleep(1.0)
+    res = client.get("/api/admin/subadmins/SUB-001/activity", headers=admin_headers)
+    assert res.status_code == 200
+    sub1_activities = res.get_json()["data"]
+    found_action = any(order_id in a.get("Action Description", "") or order_id in a.get("Related Record ID", "") for a in sub1_activities)
+    assert found_action, "Master Admin could not see Subadmin 1's action in the subadmin audit trail!"
+    print("✓ [TEST 25] Subadmin action auditing & Master Admin live visibility verified.")
+
+    # 25. Enforce Strict 4-Subadmin Maximum Limit
+    # Attempting to add a 5th subadmin when 4 slots exist
+    if len(subadmins_list) >= 4:
+        res = client.post("/api/admin/subadmins", headers=admin_headers, json={
+            "name": "Subadmin 5",
+            "email": "subadmin5@pancode.org",
+            "password": "Password123!",
+            "phone": "9999999999"
+        })
+        assert res.status_code == 400, "Failed to enforce 4-subadmin limit!"
+        assert "limit of 4" in res.get_json().get("error", "").lower()
+        print("✓ [TEST 26] Strict maximum 4-subadmin limit enforced successfully.")
+
     print("======================================================================")
-    print("ALL 21 INTEGRATION TESTS PASSED SUCCESSFULLY!")
+    print("ALL 26 INTEGRATION TESTS PASSED SUCCESSFULLY!")
     print("======================================================================")
 
 if __name__ == "__main__":

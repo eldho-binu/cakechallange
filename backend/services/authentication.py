@@ -63,13 +63,14 @@ def verify_code_or_password(stored_hash, plain_text):
         return False
 
 
-def create_token(user_id, name, role, email=None, location=None, expires_in_hours=48):
+def create_token(user_id, name, role, email=None, location=None, admin_type=None, expires_in_hours=48):
     """Generates a secure signed JWT token."""
     now = datetime.now(timezone.utc)
     payload = {
         "sub": str(user_id),
         "name": str(name),
         "role": str(role),
+        "admin_type": str(admin_type or ""),
         "email": str(email or ""),
         "location": str(location or ""),
         "iat": now,
@@ -121,6 +122,24 @@ def require_auth(allowed_roles=None):
     return decorator
 
 
+def require_master_admin():
+    """Decorator to enforce Master Admin only permissions."""
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            user = get_current_user_from_request()
+            if not user:
+                return jsonify({"success": False, "error": "Authentication required. Please log in."}), 401
+
+            if user.get("role") != "admin" or user.get("admin_type") != "master":
+                return jsonify({"success": False, "error": "Access forbidden: Only Master Administrator can perform this action."}), 403
+
+            g.current_user = user
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+
 def log_activity(admin_id_or_user, action_type, description, record_id="", prev_val="", new_val=""):
     """Helper to append an audit log entry to the Activity_Logs sheet."""
     try:
@@ -142,60 +161,125 @@ def log_activity(admin_id_or_user, action_type, description, record_id="", prev_
 
 
 def authenticate_admin(email, password, ip_address=""):
-    """Authenticates the administrator."""
+    """Authenticates the administrator (Master Admin or 1 of 4 Subadmins)."""
     rate_key = f"admin_{email.lower().strip()}_{ip_address}"
     if is_rate_limited(rate_key):
         return None, "Too many failed attempts. Account temporarily locked for 15 minutes."
 
-    target_email = MASTER_ADMIN_EMAIL.lower().strip()
-    if email.lower().strip() != target_email:
-        record_failed_attempt(rate_key)
-        return None, "Invalid administrator email or password."
+    clean_input = email.lower().strip()
+    target_master_email = MASTER_ADMIN_EMAIL.lower().strip()
 
-    # Check password from Settings sheet or env variable
-    admin_hash_setting = sheets_service.find_record("Settings", "Setting Name", "admin_password_hash")
-    stored_hash = None
-    if admin_hash_setting and admin_hash_setting.get("Setting Value"):
-        stored_hash = admin_hash_setting["Setting Value"]
+    # 1. Master Administrator Check
+    if clean_input == target_master_email or clean_input == "admin":
+        admin_hash_setting = sheets_service.find_record("Settings", "Setting Name", "admin_password_hash")
+        stored_hash = None
+        if admin_hash_setting and admin_hash_setting.get("Setting Value"):
+            stored_hash = admin_hash_setting["Setting Value"]
 
-    valid = False
-    if stored_hash:
-        valid = verify_code_or_password(stored_hash, password)
-    else:
-        # Check against DEFAULT_ADMIN_PASSWORD env variable
-        if password.strip() == DEFAULT_ADMIN_PASSWORD:
-            valid = True
-            # Store hashed version into Settings sheet for future persistence
-            hashed = hash_code_or_password(DEFAULT_ADMIN_PASSWORD)
-            sheets_service.append_row("Settings", {
-                "Setting ID": f"SET-{uuid.uuid4().hex[:6].upper()}",
-                "Setting Name": "admin_password_hash",
-                "Setting Value": hashed,
-                "Description": "Secure hash of administrator password",
-                "Updated Date": datetime.now().strftime("%Y-%m-%d")
-            })
+        valid = False
+        if stored_hash:
+            valid = verify_code_or_password(stored_hash, password)
+        else:
+            if password.strip() == DEFAULT_ADMIN_PASSWORD:
+                valid = True
+                hashed = hash_code_or_password(DEFAULT_ADMIN_PASSWORD)
+                sheets_service.append_row("Settings", {
+                    "Setting ID": f"SET-{uuid.uuid4().hex[:6].upper()}",
+                    "Setting Name": "admin_password_hash",
+                    "Setting Value": hashed,
+                    "Description": "Secure hash of administrator password",
+                    "Updated Date": datetime.now().strftime("%Y-%m-%d")
+                })
 
-    if not valid:
-        record_failed_attempt(rate_key)
-        return None, "Invalid administrator email or password."
+        if not valid:
+            record_failed_attempt(rate_key)
+            return None, "Invalid administrator email or password."
 
-    clear_failed_attempts(rate_key)
-    token = create_token(
-        user_id="ADMIN-MASTER",
-        name="Master Administrator",
-        role="admin",
-        email=MASTER_ADMIN_EMAIL
-    )
-    log_activity("Master Administrator", "LOGIN", "Administrator logged in successfully.")
-    return {
-        "token": token,
-        "user": {
-            "id": "ADMIN-MASTER",
-            "name": "Master Administrator",
-            "role": "admin",
-            "email": MASTER_ADMIN_EMAIL
-        }
-    }, None
+        clear_failed_attempts(rate_key)
+        token = create_token(
+            user_id="ADMIN-MASTER",
+            name="Master Administrator",
+            role="admin",
+            admin_type="master",
+            email=MASTER_ADMIN_EMAIL
+        )
+        log_activity("Master Administrator", "LOGIN", "Master Administrator logged in successfully.")
+        return {
+            "token": token,
+            "user": {
+                "id": "ADMIN-MASTER",
+                "name": "Master Administrator",
+                "role": "admin",
+                "admin_type": "master",
+                "email": MASTER_ADMIN_EMAIL
+            }
+        }, None
+
+    # 2. Subadmin Check (up to 4 Subadmins in Google Sheets)
+    subadmins = sheets_service.get_all_records("Subadmins")
+    matched_sub = None
+    for sub in subadmins:
+        sub_email = str(sub.get("Email", "")).lower().strip()
+        sub_id = str(sub.get("Subadmin ID", "")).lower().strip()
+        sub_name = str(sub.get("Name", "")).lower().strip()
+        if clean_input in (sub_email, sub_id, sub_name):
+            matched_sub = sub
+            break
+
+    if matched_sub:
+        status = str(matched_sub.get("Account Status", "")).strip().lower()
+        if status != "active":
+            return None, "This subadmin account is currently deactivated. Please contact the Master Administrator."
+
+        stored_hash = matched_sub.get("Password Hash", "")
+        if not verify_code_or_password(stored_hash, password):
+            record_failed_attempt(rate_key)
+            return None, "Invalid subadmin password."
+
+        clear_failed_attempts(rate_key)
+
+        # Update Last Login
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        sheets_service.update_row(
+            "Subadmins",
+            "Subadmin ID",
+            matched_sub.get("Subadmin ID"),
+            {"Last Login": now_str}
+        )
+
+        sub_name = matched_sub.get("Name", "Subadmin").strip()
+        sub_id = matched_sub.get("Subadmin ID", "").strip()
+        display_name = f"Subadmin {sub_name} ({sub_id})"
+
+        token = create_token(
+            user_id=sub_id,
+            name=display_name,
+            role="admin",
+            admin_type="subadmin",
+            email=matched_sub.get("Email", "")
+        )
+
+        log_activity(
+            display_name,
+            "LOGIN",
+            f"Subadmin {sub_name} ({sub_id}) logged in successfully.",
+            record_id=sub_id
+        )
+
+        return {
+            "token": token,
+            "user": {
+                "id": sub_id,
+                "name": sub_name,
+                "display_name": display_name,
+                "role": "admin",
+                "admin_type": "subadmin",
+                "email": matched_sub.get("Email", "")
+            }
+        }, None
+
+    record_failed_attempt(rate_key)
+    return None, "Invalid administrator email or password."
 
 
 def authenticate_member(member_name, member_code, ip_address=""):

@@ -25,6 +25,16 @@ const Auth = {
     return user && user.role === "admin";
   },
 
+  isMasterAdmin() {
+    const user = this.getUser();
+    return user && user.role === "admin" && (user.admin_type === "master" || user.id === "ADMIN-MASTER");
+  },
+
+  isSubadmin() {
+    const user = this.getUser();
+    return user && user.role === "admin" && user.admin_type === "subadmin";
+  },
+
   isMember() {
     const user = this.getUser();
     return user && user.role === "member";

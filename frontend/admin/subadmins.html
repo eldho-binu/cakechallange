@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Subadmins Management — Master Admin</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/admin.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎂</text></svg>">
+  <style>
+    .subadmin-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+    .subadmin-card {
+      background: white;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border-color);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: all 0.2s ease;
+    }
+    .subadmin-card:hover {
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+    .subadmin-header {
+      padding: 1.25rem;
+      background: #F8FAF9;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .subadmin-header h3 {
+      margin: 0;
+      font-size: 1.1rem;
+      color: var(--green-darkest);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .subadmin-body {
+      padding: 1.25rem;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      font-size: 0.9rem;
+    }
+    .subadmin-field {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px dashed #E0E0E0;
+      padding-bottom: 0.4rem;
+    }
+    .subadmin-field span.label {
+      color: var(--text-muted);
+      font-size: 0.82rem;
+    }
+    .subadmin-field span.value {
+      font-weight: 600;
+      color: var(--text-main);
+    }
+    .subadmin-footer {
+      padding: 1rem 1.25rem;
+      background: #FAFAFA;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      gap: 0.5rem;
+      justify-content: flex-end;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="admin-layout">
+    <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleSidebar()"></div>
+
+    <!-- Admin Sidebar -->
+    <aside class="admin-sidebar" id="admin-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-logo-icon" style="width: 36px; height: 36px; font-size: 1.4rem;">🎂</div>
+        <div class="sidebar-brand">
+          <h2>Cake Challenge</h2>
+          <span>Admin Portal &bull; Pancode</span>
+        </div>
+      </div>
+
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-item"><a href="dashboard.html"><span class="nav-icon">📊</span> Dashboard</a></li>
+        <li class="sidebar-nav-item"><a href="orders.html"><span class="nav-icon">📦</span> Master Orders</a></li>
+        <li class="sidebar-nav-item"><a href="customers.html"><span class="nav-icon">👥</span> Customers</a></li>
+        <li class="sidebar-nav-item"><a href="members.html"><span class="nav-icon">👤</span> Members</a></li>
+        <li class="sidebar-nav-item"><a href="requests.html"><span class="nav-icon">✨</span> Member Requests</a></li>
+        <li class="sidebar-nav-item"><a href="locations.html"><span class="nav-icon">📍</span> Locations</a></li>
+        <li class="sidebar-nav-item"><a href="cake-settings.html"><span class="nav-icon">🍰</span> Cake Settings</a></li>
+        <li class="sidebar-nav-item"><a href="custom-fields.html"><span class="nav-icon">⚙️</span> Custom Fields</a></li>
+        <li class="sidebar-nav-item"><a href="payments.html"><span class="nav-icon">💳</span> Payment Tracking</a></li>
+        <li class="sidebar-nav-item"><a href="reports.html"><span class="nav-icon">📑</span> Reports & Excel</a></li>
+        <li class="sidebar-nav-item"><a href="activity-logs.html"><span class="nav-icon">📜</span> Activity Logs</a></li>
+        <li class="sidebar-nav-item active" id="nav-subadmins"><a href="subadmins.html"><span class="nav-icon">👥</span> Subadmins (4)</a></li>
+        <li class="sidebar-nav-item"><a href="settings.html"><span class="nav-icon">🔧</span> System Settings</a></li>
+        <li class="sidebar-nav-item" style="margin-top: auto;"><a href="javascript:void(0)" onclick="Auth.logout()" style="color: #FFCDD2;"><span class="nav-icon">🚪</span> Logout</a></li>
+      </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="admin-main">
+      <header class="admin-topbar">
+        <div class="topbar-left">
+          <button class="sidebar-toggle-btn" onclick="toggleSidebar()">☰</button>
+          <h2 style="font-size: 1.25rem; margin: 0; color: var(--green-darkest);">Subadmin Oversight & Management</h2>
+        </div>
+        <div class="topbar-right">
+          <span id="system-status-pill" class="system-pill pill-online">
+            <span class="status-indicator online"></span> Storage Status
+          </span>
+          <div id="admin-identity-badge"></div>
+        </div>
+      </header>
+
+      <main class="admin-content">
+        <!-- Master Admin Notice -->
+        <div style="background: linear-gradient(135deg, #E8F5E9, #F1F8E9); border-left: 4px solid var(--green-dark); padding: 1.25rem; border-radius: var(--radius-md); margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: gap: 1rem;">
+          <div>
+            <h3 style="margin: 0 0 0.25rem; color: var(--green-darkest); font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
+              👑 Master Admin Control Center
+            </h3>
+            <p style="margin: 0; color: var(--text-muted); font-size: 0.88rem;">
+              You have exactly <strong>4 Subadmin slots</strong>. Every order, payment verification, and member update they perform is continuously tracked and auditable below.
+            </p>
+          </div>
+          <div style="text-align: right;">
+            <a href="activity-logs.html?actor=subadmins" class="btn btn-secondary btn-sm">
+              📜 View All Subadmin Activities
+            </a>
+          </div>
+        </div>
+
+        <!-- KPI Summary Cards -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-icon">🛡️</div>
+            <div>
+              <div class="kpi-label">Subadmin Slots</div>
+              <div class="kpi-value">4 Max</div>
+            </div>
+          </div>
+          <div class="kpi-card kpi-gold">
+            <div class="kpi-icon">✅</div>
+            <div>
+              <div class="kpi-label">Active Subadmins</div>
+              <div class="kpi-value" id="kpi-active-subadmins">0 / 4</div>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon">⚡</div>
+            <div>
+              <div class="kpi-label">Total Subadmin Actions</div>
+              <div class="kpi-value" id="kpi-total-actions">0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4 Subadmin Slot Cards -->
+        <h3 style="margin: 2rem 0 0.75rem; color: var(--green-darkest); display: flex; align-items: center; gap: 0.5rem;">
+          <span>👥</span> The 4 Subadmin Coordinators
+        </h3>
+        
+        <div class="subadmin-grid" id="subadmins-container">
+          <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--text-muted);">
+            Loading subadmin accounts...
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Edit Subadmin Modal -->
+  <div id="edit-subadmin-modal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-subadmin-title">Edit Subadmin Account</h3>
+        <button class="modal-close" onclick="closeEditModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="edit-subadmin-form" onsubmit="saveSubadmin(event)">
+          <input type="hidden" id="subadmin-id-field">
+
+          <div class="form-group">
+            <label class="form-label">Full Name *</label>
+            <input type="text" id="subadmin-name" class="form-control" required placeholder="e.g. Eldho Binu">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Login Email / Username *</label>
+            <input type="text" id="subadmin-email" class="form-control" required placeholder="e.g. subadmin1@pancode.org">
+            <small style="color: var(--text-muted); font-size: 0.78rem;">The subadmin will log in using this email and password.</small>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Phone Number</label>
+            <input type="tel" id="subadmin-phone" class="form-control" placeholder="10-digit mobile number">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Account Status</label>
+            <select id="subadmin-status" class="form-control">
+              <option value="Active">Active (Permitted to log in)</option>
+              <option value="Inactive">Inactive (Suspended)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Change / Reset Password</label>
+            <input type="password" id="subadmin-password" class="form-control" placeholder="Leave blank to keep existing password">
+            <small style="color: var(--text-muted); font-size: 0.78rem;">Minimum 6 characters. Only fill if setting a new password.</small>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Internal Coordinator Notes</label>
+            <input type="text" id="subadmin-notes" class="form-control" placeholder="e.g. Handles St Marys Kurish order deliveries">
+          </div>
+
+          <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem;">
+            <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="save-subadmin-btn">Save Subadmin</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Subadmin Activity Log Modal -->
+  <div id="activity-modal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 800px;">
+      <div class="modal-header">
+        <div>
+          <h3 id="activity-modal-title">Subadmin Activity Log</h3>
+          <span id="activity-modal-subtitle" style="font-size: 0.85rem; color: var(--text-muted);">Real-time audit history</span>
+        </div>
+        <button class="modal-close" onclick="closeActivityModal()">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 1rem;">
+        <div class="table-responsive" style="max-height: 450px; overflow-y: auto;">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Date & Time</th>
+                <th>Action</th>
+                <th>Description</th>
+                <th>Record ID</th>
+              </tr>
+            </thead>
+            <tbody id="subadmin-activity-tbody">
+              <tr>
+                <td colspan="4" style="text-align: center; padding: 2rem; color: var(--text-muted);">Loading logs...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeActivityModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/ui.js"></script>
+
+  <script>
+    let subadminsData = [];
+
+    function toggleSidebar() {
+      document.getElementById("admin-sidebar").classList.toggle("open");
+      document.getElementById("sidebar-backdrop").classList.toggle("active");
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      if (!Auth.requireRole("admin")) return;
+      if (!Auth.isMasterAdmin()) {
+        alert("Access Restricted: Only the Master Administrator can view and manage Subadmins.");
+        window.location.href = "dashboard.html";
+        return;
+      }
+      UI.checkSystemHealth();
+      loadSubadmins();
+    });
+
+    async function loadSubadmins() {
+      const container = document.getElementById("subadmins-container");
+      try {
+        const res = await API.get("/api/admin/subadmins");
+        if (!res.success) {
+          container.innerHTML = `<div style="grid-column:1/-1; color: var(--red-primary); text-align:center; padding:2rem;">Failed to load subadmins: ${res.error}</div>`;
+          return;
+        }
+
+        subadminsData = res.data || [];
+        renderSubadmins();
+      } catch (e) {
+        container.innerHTML = `<div style="grid-column:1/-1; color: var(--red-primary); text-align:center; padding:2rem;">Error connecting to server.</div>`;
+      }
+    }
+
+    function renderSubadmins() {
+      const container = document.getElementById("subadmins-container");
+      if (!subadminsData || subadminsData.length === 0) {
+        container.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:2rem; color: var(--text-muted);">No subadmins configured yet.</div>`;
+        return;
+      }
+
+      let activeCount = 0;
+      let totalActions = 0;
+
+      container.innerHTML = subadminsData.map((sub, idx) => {
+        const isActive = (sub["Account Status"] || "Active").toLowerCase() === "active";
+        if (isActive) activeCount++;
+        const actCount = sub.activity_count || 0;
+        totalActions += actCount;
+
+        return `
+          <div class="subadmin-card">
+            <div class="subadmin-header">
+              <h3>
+                <span>🛡️</span>
+                <span>Slot ${idx + 1} (${sub["Subadmin ID"]})</span>
+              </h3>
+              <span class="badge ${isActive ? 'badge-verified' : 'badge-rejected'}">
+                ${isActive ? 'Active' : 'Inactive'}
+              </span>
+            </div>
+            <div class="subadmin-body">
+              <div class="subadmin-field">
+                <span class="label">Name</span>
+                <span class="value">${sub["Name"] || "Unassigned"}</span>
+              </div>
+              <div class="subadmin-field">
+                <span class="label">Login Email</span>
+                <span class="value" style="font-family: monospace; font-size: 0.85rem;">${sub["Email"] || "-"}</span>
+              </div>
+              <div class="subadmin-field">
+                <span class="label">Phone</span>
+                <span class="value">${sub["Phone Number"] || "Not provided"}</span>
+              </div>
+              <div class="subadmin-field">
+                <span class="label">Last Login</span>
+                <span class="value" style="font-size: 0.8rem; color: var(--text-muted);">${sub["Last Login"] || "Never logged in"}</span>
+              </div>
+              <div class="subadmin-field">
+                <span class="label">Actions Logged</span>
+                <span class="badge badge-paid">${actCount} actions</span>
+              </div>
+              ${sub["Notes"] ? `
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">
+                  <em>Note: ${sub["Notes"]}</em>
+                </div>
+              ` : ''}
+            </div>
+            <div class="subadmin-footer">
+              <button class="btn btn-secondary btn-sm" onclick="viewActivity('${sub["Subadmin ID"]}', '${sub["Name"]}')">
+                📜 Activity (${actCount})
+              </button>
+              <button class="btn btn-primary btn-sm" onclick="openEditModal('${sub["Subadmin ID"]}')">
+                ✏️ Edit Account
+              </button>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      document.getElementById("kpi-active-subadmins").textContent = `${activeCount} / 4`;
+      document.getElementById("kpi-total-actions").textContent = totalActions;
+    }
+
+    function openEditModal(subId) {
+      const sub = subadminsData.find(s => s["Subadmin ID"] === subId);
+      if (!sub) return;
+
+      document.getElementById("subadmin-id-field").value = sub["Subadmin ID"];
+      document.getElementById("modal-subadmin-title").textContent = `Edit Subadmin (${sub["Subadmin ID"]})`;
+      document.getElementById("subadmin-name").value = sub["Name"] || "";
+      document.getElementById("subadmin-email").value = sub["Email"] || "";
+      document.getElementById("subadmin-phone").value = sub["Phone Number"] || "";
+      document.getElementById("subadmin-status").value = sub["Account Status"] || "Active";
+      document.getElementById("subadmin-password").value = "";
+      document.getElementById("subadmin-notes").value = sub["Notes"] || "";
+
+      document.getElementById("edit-subadmin-modal").classList.add("active");
+    }
+
+    function closeEditModal() {
+      document.getElementById("edit-subadmin-modal").classList.remove("active");
+    }
+
+    async function saveSubadmin(e) {
+      e.preventDefault();
+      const subId = document.getElementById("subadmin-id-field").value;
+      const saveBtn = document.getElementById("save-subadmin-btn");
+      saveBtn.disabled = true;
+      saveBtn.textContent = "Saving...";
+
+      const payload = {
+        name: document.getElementById("subadmin-name").value.trim(),
+        email: document.getElementById("subadmin-email").value.trim(),
+        phone: document.getElementById("subadmin-phone").value.trim(),
+        status: document.getElementById("subadmin-status").value,
+        notes: document.getElementById("subadmin-notes").value.trim()
+      };
+
+      const pwd = document.getElementById("subadmin-password").value.trim();
+      if (pwd) payload.password = pwd;
+
+      try {
+        const res = await API.put(`/api/admin/subadmins/${subId}`, payload);
+        if (res.success) {
+          UI.showToast(res.message || "Subadmin updated successfully!", "success");
+          closeEditModal();
+          loadSubadmins();
+        } else {
+          UI.showToast(res.error || "Failed to update subadmin.", "error");
+        }
+      } catch (err) {
+        UI.showToast("Network error saving subadmin.", "error");
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = "Save Subadmin";
+      }
+    }
+
+    async function viewActivity(subId, subName) {
+      const modal = document.getElementById("activity-modal");
+      document.getElementById("activity-modal-title").textContent = `Activity Trail: ${subName} (${subId})`;
+      const tbody = document.getElementById("subadmin-activity-tbody");
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 2rem; color: var(--text-muted);">Loading logs...</td></tr>`;
+      modal.classList.add("active");
+
+      try {
+        const res = await API.get(`/api/admin/subadmins/${subId}/activity`);
+        if (res.success && res.data) {
+          if (res.data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 2rem; color: var(--text-muted);">No activity recorded yet for this subadmin.</td></tr>`;
+            return;
+          }
+
+          tbody.innerHTML = res.data.map(l => `
+            <tr>
+              <td style="white-space: nowrap; font-size: 0.85rem;">
+                <strong>${l["Date"]}</strong><br>
+                <span style="color: var(--text-muted);">${l["Time"]}</span>
+              </td>
+              <td><span class="badge badge-partial">${l["Action Type"] || "ACTION"}</span></td>
+              <td>${l["Action Description"] || "-"}</td>
+              <td style="font-family: monospace; font-size: 0.85rem;">${l["Related Record ID"] || "-"}</td>
+            </tr>
+          `).join("");
+        } else {
+          tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--red-primary); padding: 2rem;">Failed to load activity logs.</td></tr>`;
+        }
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--red-primary); padding: 2rem;">Error loading activity trail.</td></tr>`;
+      }
+    }
+
+    function closeActivityModal() {
+      document.getElementById("activity-modal").classList.remove("active");
+    }
+  </script>
+</body>
+</html>

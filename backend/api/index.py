@@ -15,7 +15,7 @@ if parent_dir not in sys.path:
 
 from services.google_sheets import sheets_service
 from services.authentication import (
-    authenticate_admin, authenticate_member, require_auth, 
+    authenticate_admin, authenticate_member, require_auth, require_master_admin,
     hash_code_or_password, log_activity, MASTER_ADMIN_EMAIL
 )
 from services.order_service import (
@@ -545,7 +545,7 @@ def list_admin_cakes():
 
 
 @app.route("/api/admin/cakes", methods=["POST"])
-@require_auth(allowed_roles=["admin"])
+@require_master_admin()
 def create_cake():
     data = request.get_json(silent=True) or {}
     name = data.get("name", "").strip()
@@ -584,7 +584,7 @@ def create_cake():
 
 
 @app.route("/api/admin/cakes/<cid>", methods=["PUT"])
-@require_auth(allowed_roles=["admin"])
+@require_master_admin()
 def update_cake(cid):
     data = request.get_json(silent=True) or {}
     cake = sheets_service.find_record("Cake_Settings", "Cake ID", cid)
@@ -615,7 +615,7 @@ def update_cake(cid):
 
 
 @app.route("/api/admin/cakes/<cid>/toggle-status", methods=["POST"])
-@require_auth(allowed_roles=["admin"])
+@require_master_admin()
 def toggle_cake_status(cid):
     cake = sheets_service.find_record("Cake_Settings", "Cake ID", cid)
     if not cake:
@@ -1257,6 +1257,37 @@ def update_order(oid):
     return jsonify({"success": True, "message": "Order updated successfully.", "data": res})
 
 
+@app.route("/api/admin/orders/<oid>/status", methods=["PUT"])
+@require_auth(allowed_roles=["admin"])
+def update_order_status_admin(oid):
+    data = request.get_json(silent=True) or {}
+    new_status = data.get("order_status", "").strip()
+    if not new_status:
+        return jsonify({"success": False, "error": "order_status is required."}), 400
+
+    order = sheets_service.find_record("Orders", "Order ID", oid)
+    if not order:
+        return jsonify({"success": False, "error": "Order not found."}), 404
+
+    prev_status = order.get("Order Status", "")
+    sheets_service.update_row("Orders", "Order ID", oid, {
+        "Order Status": new_status,
+        "Updated Date": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    })
+
+    actor = g.current_user.get("name")
+    log_activity(
+        actor,
+        "ORDER_STATUS_UPDATE",
+        f"Updated order {oid} status from {prev_status} to {new_status}.",
+        record_id=oid,
+        prev_val=prev_status,
+        new_val=new_status
+    )
+
+    return jsonify({"success": True, "message": f"Order status updated to {new_status}."})
+
+
 @app.route("/api/orders/<oid>/reopen", methods=["POST"])
 @require_auth(allowed_roles=["admin"])
 def reopen_order(oid):
@@ -1569,6 +1600,15 @@ def admin_summary():
         r["customer_name"] = cust_map.get(r.get("Customer ID"), "Unknown")
         r["member_name"] = member_map.get(r.get("Member ID"), "Unknown")
 
+    # Recent Subadmin Activities (Live feed for Master Admin)
+    all_logs = sheets_service.get_all_records("Activity_Logs")
+    subadmin_logs = [l for l in all_logs if str(l.get("Admin ID or Username", "")).lower().startswith("subadmin")]
+    subadmin_logs_sorted = sorted(subadmin_logs, key=lambda x: f"{x.get('Date', '')} {x.get('Time', '')}", reverse=True)[:6]
+
+    # Subadmins count
+    subadmins_list = sheets_service.get_all_records("Subadmins")
+    active_subadmins = sum(1 for s in subadmins_list if str(s.get("Account Status", "")).lower() == "active")
+
     return jsonify({
         "success": True,
         "data": {
@@ -1587,7 +1627,10 @@ def admin_summary():
             "cake_distribution": cake_distribution,
             "location_sales": location_sales,
             "member_sales": member_sales,
-            "recent_orders": recent_orders
+            "recent_orders": recent_orders,
+            "recent_subadmin_activities": subadmin_logs_sorted,
+            "active_subadmins": active_subadmins,
+            "total_subadmins": len(subadmins_list)
         }
     })
 
@@ -1614,29 +1657,246 @@ def export_admin_excel():
 def list_activity_logs():
     search = request.args.get("search", "").strip().lower()
     action_type = request.args.get("action_type", "").strip().lower()
+    actor_filter = request.args.get("actor", "").strip().lower()
     date_from = request.args.get("date_from", "").strip()
     date_to = request.args.get("date_to", "").strip()
 
     logs = sheets_service.get_all_records("Activity_Logs")
     filtered = []
     for l in logs:
+        actor = str(l.get("Admin ID or Username", "")).lower()
         if action_type and action_type != "all" and l.get("Action Type", "").lower() != action_type:
             continue
+        if actor_filter and actor_filter != "all":
+            if actor_filter == "master" and "master" not in actor:
+                continue
+            elif actor_filter == "subadmins" and not actor.startswith("subadmin"):
+                continue
+            elif actor_filter not in ("all", "master", "subadmins") and actor_filter not in actor:
+                continue
         ldate = l.get("Date", "")
         if date_from and ldate < date_from:
             continue
         if date_to and ldate > date_to:
             continue
         if search:
-            user = l.get("Admin ID or Username", "").lower()
             desc = l.get("Action Description", "").lower()
             rec = l.get("Related Record ID", "").lower()
-            if search not in user and search not in desc and search not in rec:
+            if search not in actor and search not in desc and search not in rec:
                 continue
         filtered.append(l)
 
     filtered.sort(key=lambda x: f"{x.get('Date', '')} {x.get('Time', '')}", reverse=True)
-    return jsonify({"success": True, "data": filtered})
+
+    # Subadmin activity summary for Master Admin
+    subadmins = sheets_service.get_all_records("Subadmins")
+    subadmin_summary = []
+    for sub in subadmins:
+        sid = str(sub.get("Subadmin ID", ""))
+        sname = str(sub.get("Name", ""))
+        count = sum(1 for x in logs if sid.lower() in str(x.get("Admin ID or Username", "")).lower())
+        subadmin_summary.append({
+            "id": sid,
+            "name": sname,
+            "status": sub.get("Account Status", "Active"),
+            "activity_count": count
+        })
+
+    return jsonify({
+        "success": True, 
+        "data": filtered,
+        "subadmin_summary": subadmin_summary
+    })
+
+
+# ---------------------------------------------------------------------------
+# Subadmins Management (Master Admin Only - Maximum 4 Subadmins)
+# ---------------------------------------------------------------------------
+
+@app.route("/api/admin/subadmins", methods=["GET"])
+@require_master_admin()
+def list_subadmins():
+    """Returns list of all configured subadmin accounts (up to 4) with their activity counts."""
+    subadmins = sheets_service.get_all_records("Subadmins")
+    logs = sheets_service.get_all_records("Activity_Logs")
+    
+    activity_counts = {}
+    for l in logs:
+        actor = str(l.get("Admin ID or Username", "")).lower()
+        for sub in subadmins:
+            sid = str(sub.get("Subadmin ID", "")).lower()
+            sname = str(sub.get("Name", "")).lower()
+            if sid in actor or (sname and sname in actor):
+                activity_counts[sub.get("Subadmin ID")] = activity_counts.get(sub.get("Subadmin ID"), 0) + 1
+
+    safe_subadmins = []
+    for s in subadmins:
+        sub_copy = {k: v for k, v in s.items() if k != "Password Hash"}
+        sub_copy["activity_count"] = activity_counts.get(s.get("Subadmin ID"), 0)
+        safe_subadmins.append(sub_copy)
+
+    return jsonify({
+        "success": True,
+        "data": safe_subadmins,
+        "total_slots": 4,
+        "used_slots": len(safe_subadmins)
+    })
+
+
+@app.route("/api/admin/subadmins", methods=["POST"])
+@require_master_admin()
+def create_subadmin():
+    """Creates a new subadmin account, strictly enforcing a maximum limit of 4."""
+    existing = sheets_service.get_all_records("Subadmins")
+    if len(existing) >= 4:
+        return jsonify({
+            "success": False, 
+            "error": "Maximum limit of 4 subadmin accounts reached. You cannot add more."
+        }), 400
+
+    data = request.get_json(silent=True) or {}
+    name = data.get("name", "").strip()
+    email = data.get("email", "").strip().lower()
+    password = data.get("password", "").strip()
+    phone = data.get("phone", "").strip()
+    notes = data.get("notes", "").strip()
+
+    if not name:
+        return jsonify({"success": False, "error": "Subadmin name is required."}), 400
+    if not email:
+        return jsonify({"success": False, "error": "Subadmin email/username is required."}), 400
+    if not password or len(password) < 6:
+        return jsonify({"success": False, "error": "Password must be at least 6 characters."}), 400
+
+    for sub in existing:
+        if str(sub.get("Email", "")).strip().lower() == email:
+            return jsonify({"success": False, "error": "A subadmin with this email already exists."}), 400
+
+    used_indices = set()
+    for sub in existing:
+        sid = str(sub.get("Subadmin ID", ""))
+        if sid.startswith("SUB-"):
+            try:
+                used_indices.add(int(sid.split("-")[1]))
+            except ValueError:
+                pass
+
+    next_idx = 1
+    while next_idx in used_indices:
+        next_idx += 1
+
+    sub_id = f"SUB-{str(next_idx).zfill(3)}"
+    new_sub = {
+        "Subadmin ID": sub_id,
+        "Name": name,
+        "Email": email,
+        "Password Hash": hash_code_or_password(password),
+        "Phone Number": phone,
+        "Role": "subadmin",
+        "Account Status": "Active",
+        "Date Created": datetime.now().strftime("%Y-%m-%d"),
+        "Last Login": "",
+        "Notes": notes
+    }
+
+    sheets_service.append_row("Subadmins", new_sub)
+    log_activity(
+        "Master Administrator",
+        "SUBADMIN_CREATED",
+        f"Master Administrator created subadmin account {name} ({sub_id}).",
+        record_id=sub_id
+    )
+
+    return jsonify({
+        "success": True,
+        "message": f"Subadmin {name} created successfully.",
+        "data": {k: v for k, v in new_sub.items() if k != "Password Hash"}
+    })
+
+
+@app.route("/api/admin/subadmins/<sub_id>", methods=["PUT"])
+@require_master_admin()
+def update_subadmin(sub_id):
+    """Updates an existing subadmin account (name, email, phone, status, notes, or resets password)."""
+    existing = sheets_service.find_record("Subadmins", "Subadmin ID", sub_id)
+    if not existing:
+        return jsonify({"success": False, "error": "Subadmin not found."}), 404
+
+    data = request.get_json(silent=True) or {}
+    name = data.get("name", "").strip() or existing.get("Name")
+    email = data.get("email", "").strip().lower() or existing.get("Email")
+    phone = data.get("phone", "").strip() if "phone" in data else existing.get("Phone Number", "")
+    status = data.get("status", "").strip().capitalize() if "status" in data else existing.get("Account Status", "Active")
+    notes = data.get("notes", "").strip() if "notes" in data else existing.get("Notes", "")
+    new_password = data.get("password", "").strip()
+
+    updates = {
+        "Name": name,
+        "Email": email,
+        "Phone Number": phone,
+        "Account Status": status,
+        "Notes": notes
+    }
+
+    if new_password:
+        if len(new_password) < 6:
+            return jsonify({"success": False, "error": "Password must be at least 6 characters."}), 400
+        updates["Password Hash"] = hash_code_or_password(new_password)
+
+    sheets_service.update_row("Subadmins", "Subadmin ID", sub_id, updates)
+    log_activity(
+        "Master Administrator",
+        "SUBADMIN_UPDATED",
+        f"Master Administrator updated subadmin {name} ({sub_id}). Status: {status}.",
+        record_id=sub_id
+    )
+
+    return jsonify({"success": True, "message": f"Subadmin {name} updated successfully."})
+
+
+@app.route("/api/admin/subadmins/<sub_id>", methods=["DELETE"])
+@require_master_admin()
+def deactivate_subadmin(sub_id):
+    """Deactivates a subadmin account."""
+    existing = sheets_service.find_record("Subadmins", "Subadmin ID", sub_id)
+    if not existing:
+        return jsonify({"success": False, "error": "Subadmin not found."}), 404
+
+    sheets_service.update_row("Subadmins", "Subadmin ID", sub_id, {"Account Status": "Inactive"})
+    log_activity(
+        "Master Administrator",
+        "SUBADMIN_DEACTIVATED",
+        f"Master Administrator deactivated subadmin account {existing.get('Name')} ({sub_id}).",
+        record_id=sub_id
+    )
+    return jsonify({"success": True, "message": f"Subadmin {existing.get('Name')} deactivated."})
+
+
+@app.route("/api/admin/subadmins/<sub_id>/activity", methods=["GET"])
+@require_master_admin()
+def get_subadmin_activity(sub_id):
+    """Returns all activity logs generated by a specific subadmin for the Master Admin."""
+    existing = sheets_service.find_record("Subadmins", "Subadmin ID", sub_id)
+    if not existing:
+        return jsonify({"success": False, "error": "Subadmin not found."}), 404
+
+    sub_name = str(existing.get("Name", "")).lower()
+    sub_key = sub_id.lower()
+
+    logs = sheets_service.get_all_records("Activity_Logs")
+    sub_logs = []
+    for l in logs:
+        actor = str(l.get("Admin ID or Username", "")).lower()
+        if sub_key in actor or (sub_name and sub_name in actor):
+            sub_logs.append(l)
+
+    sub_logs.sort(key=lambda x: f"{x.get('Date', '')} {x.get('Time', '')}", reverse=True)
+    return jsonify({
+        "success": True,
+        "subadmin": {k: v for k, v in existing.items() if k != "Password Hash"},
+        "data": sub_logs,
+        "count": len(sub_logs)
+    })
 
 
 # ---------------------------------------------------------------------------
@@ -1655,7 +1915,7 @@ def get_settings():
 
 
 @app.route("/api/admin/settings/password", methods=["PUT"])
-@require_auth(allowed_roles=["admin"])
+@require_master_admin()
 def update_admin_password():
     data = request.get_json(silent=True) or {}
     new_password = data.get("new_password", "").strip()
@@ -1681,11 +1941,11 @@ def update_admin_password():
         })
 
     log_activity(
-        g.current_user.get("name"),
+        "Master Administrator",
         "ADMIN_PASSWORD_CHANGED",
-        "Administrator changed the master password."
+        "Master Administrator changed the master password."
     )
-    return jsonify({"success": True, "message": "Administrator password updated successfully."})
+    return jsonify({"success": True, "message": "Master administrator password updated successfully."})
 
 
 # ---------------------------------------------------------------------------

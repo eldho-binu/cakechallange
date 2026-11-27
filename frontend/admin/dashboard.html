@@ -214,6 +214,43 @@
           </div>
         </div>
 
+        <!-- Live Subadmin Activities Feed (Master Admin Oversight) -->
+        <div class="card" id="card-subadmin-activities" style="margin-top: 1.5rem;">
+          <div class="card-header">
+            <div>
+              <h2 style="display: flex; align-items: center; gap: 0.5rem;">
+                <span>🛡️</span> Live Subadmin Activity Feed
+              </h2>
+              <span style="font-size: 0.85rem; color: var(--text-muted);">
+                Real-time oversight: everything the 4 subadmins do is continuously tracked here
+              </span>
+            </div>
+            <div>
+              <a href="activity-logs.html?actor=subadmins" class="btn btn-secondary btn-sm">View All Audit Logs &rarr;</a>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Date & Time</th>
+                  <th>Subadmin Coordinator</th>
+                  <th>Action</th>
+                  <th>Description</th>
+                  <th>Record ID</th>
+                </tr>
+              </thead>
+              <tbody id="subadmin-activities-tbody">
+                <tr>
+                  <td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                    Loading subadmin activities...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
       </main>
 
     </div>
@@ -284,6 +321,35 @@
 
           // Render Recent Orders
           renderRecentOrders(d.recent_orders || []);
+
+          // Render Subadmin Activities (Master Admin Oversight)
+          const subCard = document.getElementById("card-subadmin-activities");
+          if (!Auth.isMasterAdmin()) {
+            if (subCard) subCard.style.display = "none";
+          } else {
+            const subTbody = document.getElementById("subadmin-activities-tbody");
+            if (subTbody && d.recent_subadmin_activities) {
+              if (d.recent_subadmin_activities.length === 0) {
+                subTbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-muted);">No actions recorded by subadmins yet.</td></tr>`;
+              } else {
+                subTbody.innerHTML = d.recent_subadmin_activities.map(l => `
+                  <tr>
+                    <td style="white-space: nowrap; font-size: 0.85rem;">
+                      <strong>${l['Date']}</strong> <span style="color: var(--text-muted);">${l['Time'] || ''}</span>
+                    </td>
+                    <td>
+                      <span style="background: #EDE7F6; color: #4A148C; font-weight: 700; padding: 3px 8px; border-radius: 4px; border: 1px solid #D1C4E9; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 4px;">
+                        🛡️ ${l['Admin ID or Username']}
+                      </span>
+                    </td>
+                    <td><span class="badge badge-partial">${l['Action Type'] || 'ACTION'}</span></td>
+                    <td>${l['Action Description'] || '-'}</td>
+                    <td><code>${l['Related Record ID'] || '-'}</code></td>
+                  </tr>
+                `).join("");
+              }
+            }
+          }
         }
       } catch (e) {
         console.error("Failed to load admin summary:", e);

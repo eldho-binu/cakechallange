@@ -106,6 +106,9 @@ const UI = {
   },
 
   async checkSystemHealth(elementId = "system-status-pill") {
+    // Also initialize Admin header and permissions
+    this.initAdminHeader();
+
     const el = document.getElementById(elementId);
     if (!el) return;
 
@@ -125,6 +128,74 @@ const UI = {
     } catch (e) {
       el.innerHTML = `<span class="status-indicator offline"></span> Backend Offline`;
       el.className = "system-pill pill-offline";
+    }
+  },
+
+  initAdminHeader() {
+    if (typeof Auth === "undefined" || !Auth.isLoggedIn()) return;
+    const user = Auth.getUser();
+    if (!user || user.role !== "admin") return;
+
+    const isMaster = Auth.isMasterAdmin();
+    const currentPath = window.location.pathname.toLowerCase();
+    const masterOnlyPages = ["subadmins.html", "settings.html", "cake-settings.html", "custom-fields.html"];
+    
+    if (!isMaster && masterOnlyPages.some(p => currentPath.includes(p))) {
+      alert("Access Restricted: Only the Master Administrator can access this page.");
+      window.location.href = "dashboard.html";
+      return;
+    }
+
+    // Topbar identity update
+    const topbarRight = document.querySelector(".topbar-right");
+    if (topbarRight) {
+      let identityDiv = document.getElementById("admin-identity-badge");
+      if (!identityDiv) {
+        const allDivs = topbarRight.querySelectorAll("div");
+        for (let d of allDivs) {
+          if (d.textContent.includes("Administrator") || d.textContent.includes("Admin") || d.textContent.includes("🛡️")) {
+            identityDiv = d;
+            identityDiv.id = "admin-identity-badge";
+            break;
+          }
+        }
+      }
+      if (identityDiv) {
+        if (isMaster) {
+          identityDiv.innerHTML = `<span style="background: #E8F5E9; color: #1B5E20; padding: 4px 12px; border-radius: 20px; font-weight: 700; font-size: 0.85rem; border: 1px solid #C8E6C9; display: inline-flex; align-items: center; gap: 5px;">👑 Master Administrator</span>`;
+        } else {
+          identityDiv.innerHTML = `<span style="background: #EDE7F6; color: #4A148C; padding: 4px 12px; border-radius: 20px; font-weight: 700; font-size: 0.85rem; border: 1px solid #D1C4E9; display: inline-flex; align-items: center; gap: 5px;">🛡️ Subadmin: ${user.name || user.id}</span>`;
+        }
+      }
+    }
+
+    // Sidebar navigation adaptation
+    const navList = document.querySelector(".sidebar-nav");
+    if (navList) {
+      // Add Subadmins link for Master Admin if not present
+      if (isMaster && !document.getElementById("nav-subadmins")) {
+        const subLi = document.createElement("li");
+        subLi.className = "sidebar-nav-item";
+        subLi.id = "nav-subadmins";
+        if (currentPath.includes("subadmins.html")) subLi.classList.add("active");
+        subLi.innerHTML = `<a href="subadmins.html"><span class="nav-icon">👥</span> Subadmins (4)</a>`;
+        
+        const settingsLi = navList.querySelector('a[href="settings.html"]')?.closest("li");
+        if (settingsLi) {
+          navList.insertBefore(subLi, settingsLi);
+        } else {
+          navList.appendChild(subLi);
+        }
+      }
+
+      // If Subadmin, hide Master-only configuration tabs
+      if (!isMaster) {
+        const hideLinks = ["subadmins.html", "settings.html", "cake-settings.html", "custom-fields.html"];
+        hideLinks.forEach(href => {
+          const item = navList.querySelector(`a[href="${href}"]`)?.closest("li");
+          if (item) item.style.display = "none";
+        });
+      }
     }
   }
 };
